@@ -18,3 +18,4 @@ sodomongo.d
 *.dump
 apps/
 *#
+res/sys.config
