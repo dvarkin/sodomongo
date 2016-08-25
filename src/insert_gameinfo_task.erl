@@ -25,7 +25,7 @@ run(Connection) ->
   [mc_worker_api:insert(Connection, <<"marketinfo">>, Market) || Market <- Markets],
 
   metrics:notify({<<"insert_name_info">>, 1}),
-  metrics:notify({<<"insert_market_info", length(Markets)>>}),
+  metrics:notify({<<"insert_market_info">>, length(Markets)}),
 
   timer:sleep(?TASK_SLEEP),
 
