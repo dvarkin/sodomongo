@@ -14,7 +14,15 @@ init([]) ->
         restart => permanent,
         shutdown => 5000,
         type => worker,
-        modules => [rxdb]
+        modules => [hugin]
+    },
+    MetaStore = #{
+        id => meta_storage,
+        start => {meta_storage, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker,
+        modules => [meta_storage]
     },
     Metrics = #{
         id => metrics,
@@ -24,5 +32,5 @@ init([]) ->
         type => worker,
         modules => [metrics]
     },
-    Procs = [Metrics, Hugin],
+    Procs = [Metrics, MetaStore, Hugin],
     {ok, {{one_for_one, 1, 5}, Procs}}.

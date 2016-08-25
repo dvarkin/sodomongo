@@ -11,20 +11,17 @@
 
 
 run(Connection) ->
-%%  GameId = ets:first(gameinfo),
-%%  [{_, MarketIds}|_]= ets:lookup(gameinfo, GameId),
-%%  ets:delete(gameinfo, GameId),
-%%  [ets:delete(marketinfo, MarketId) || MarketId <- MarketIds],
-%%
-%%  mc_worker_api:delete(Connection, <<"gameinfo">>, #{?ID => GameId}),
-%%  [mc_worker_api:delete(Connection, <<"marketinfo">>, #{?ID => MarketId}) || MarketId <- MarketIds],
-%%
-%%  metrics:notify({<<"delete_name_info">>, 1}),
-%%  metrics:notify({<<"delete_market_info">>, length(MarketIds)}),
-%%
-%%  timer:sleep(?TASK_SLEEP),
+    GameId = meta_storage:get_random_game(),
+    MarketIds = meta_storage:delete_game(GameId),
+    mc_worker_api:delete(Connection, <<"gameinfo">>, #{?ID => GameId}),
+    [mc_worker_api:delete(Connection, <<"marketinfo">>, #{?ID => MarketId}) || MarketId <- MarketIds],
 
-  run(Connection).
+    metrics:notify({<<"delete_name_info">>, 1}),
+    metrics:notify({<<"delete_market_info">>, length(MarketIds)}),
+
+    timer:sleep(?TASK_SLEEP),
+
+    run(Connection).
 
 
 

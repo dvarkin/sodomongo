@@ -3,6 +3,8 @@
 
 -behaviour(gen_server).
 
+-include("meta_storage.hrl").
+
 %% API
 -export([start_link/0]).
 -export([insert_game/3, get_random_game/0, delete_game/1]).
@@ -17,7 +19,7 @@
 
 -define(SERVER, {global, ?MODULE}).
 
--record(state, {gameinfo, selection}).
+-record(state, {game_info_tab, selection_tab}).
 
 %%%===================================================================
 %%% API
@@ -41,7 +43,7 @@ delete_game(GameId) ->
 -spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+  gen_server:start_link(?SERVER, ?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -62,7 +64,9 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-  {ok, #state{}}.
+    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}]),
+    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}]),
+    {ok, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -72,15 +76,24 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
-    State :: #state{}) ->
+	State :: #state{}) ->
   {reply, Reply :: term(), NewState :: #state{}} |
   {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
+
+handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
+    GameId = ets:first(Game_Info_Tab),
+    {reply, GameId, State};
+handle_call({delete_game, GameId}, _From, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
+    MarketIds = ets:lookup(Game_Info_Tab, GameId),
+    ets:delete(Game_Info_Tab, GameId),
+    [ets:delete(Selection_Tab, MarketId) || MarketId <- MarketIds],
+    {reply, MarketIds, State };
 handle_call(_Request, _From, State) ->
-  {reply, ok, State}.
+    {reply, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -93,9 +106,9 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({insert_game, GameId, MarketIds, SelectionIds}, #state{gameinfo=GameInfo, selection=Selection} = State) ->
-  ets:insert(GameInfo, {GameId, MarketIds}),
-  [ets:insert(Selection, {SelectionId}) || SelectionId <- SelectionIds],
+handle_cast({insert_game, GameId, MarketIds, Selections}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab} = State) ->
+  ets:insert(Game_Info_Tab, {GameId, MarketIds}),
+  [ets:insert(Selection_Tab, {MarketId, SelectionIds}) || {MarketId, SelectionIds}  <- Selections],
   {noreply, State};
 handle_cast(_Request, State) ->
   {noreply, State}.
@@ -106,8 +119,8 @@ handle_cast(_Request, State) ->
 %% Handling all non call/cast messages
 %%
 %% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
+%%									 {noreply, State, Timeout} |
+%%									 {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
@@ -129,7 +142,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
-    State :: #state{}) -> term()).
+	State :: #state{}) -> term()).
 terminate(_Reason, _State) ->
   ok.
 
@@ -142,7 +155,7 @@ terminate(_Reason, _State) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
-    Extra :: term()) ->
+	Extra :: term()) ->
   {ok, NewState :: #state{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
