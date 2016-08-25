@@ -1,6 +1,18 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-erl -name 'sodomongo@192.168.144.110' \
+IP=$1
+NAME=$2
+START_MODULE=""
+
+if [ $3 = "master" ]; then
+  START_MODULE="sodomongo start"
+else
+  START_MODULE="sodomongo start_deps"
+fi
+
+echo $START_MODULE
+
+erl -name "${NAME}@${IP}" \
     -pa deps/bson/ebin \
     -pa deps/mongodb/ebin \
     -pa deps/pbkdf2/ebin/ \
@@ -13,5 +25,4 @@ erl -name 'sodomongo@192.168.144.110' \
     -pa deps/sync/ebin/ \
     -pa ebin/ \
     -config rel/sys \
-    -s sodomongo start 
-
+    -s ${START_MODULE}
