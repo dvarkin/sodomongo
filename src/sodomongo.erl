@@ -4,7 +4,8 @@
 
 start() ->
     start_deps(),
-    ok = application:start(sodomongo).
+    ok = application:start(sodomongo),
+    net_adm:world().
 
 start_test(Workers, Rate, Mins) ->
     Pids = [Pid || {ok, Pid} <- [muter_sup:start_kinder() || _ <- lists:seq(1, Workers)]],
