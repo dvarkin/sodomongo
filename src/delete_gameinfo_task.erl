@@ -4,24 +4,43 @@
 -export([run/1]).
 
 -define(TASK_SLEEP, 1000).
+-define(GAME_INFO_METRIC, <<"delete_game_info">>).
+-define(MARKET_INFO_METRIC, <<"delete_market_info">>).
+
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-
 run(Connection) ->
-    GameId = meta_storage:get_random_game(),
-    MarketIds = meta_storage:delete_game(GameId),
-    mc_worker_api:delete(Connection, <<"gameinfo">>, #{?ID => GameId}),
-    [mc_worker_api:delete(Connection, <<"marketinfo">>, #{?ID => MarketId}) || MarketId <- MarketIds],
+    
+    %% init metrics
 
-    metrics:notify({<<"delete_name_info">>, 1}),
-    metrics:notify({<<"delete_market_info">>, length(MarketIds)}),
+    metrics:create(meter, ?GAME_INFO_METRIC),
+    metrics:create(meter, ?MARKET_INFO_METRIC),
+    
+    %% Mian task
+    job(Connection).
+
+job(Connection) ->
+        case meta_storage:get_random_game() of
+            GameId when is_integer(GameId) ->
+            
+                [{_, MarketIds}] = meta_storage:get_market_ids(GameId),
+                mc_worker_api:delete(Connection, <<"gameinfo">>, #{?ID => GameId}),
+%%                error_logger:info_msg("market ids: ~p", [MarketIds]),
+                [mc_worker_api:delete(Connection, <<"marketinfo">>, #{?ID => MarketId}) || MarketId <- MarketIds],
+                meta_storage:delete_game(GameId),
+                metrics:notify({?GAME_INFO_METRIC, 1}),
+                metrics:notify({?MARKET_INFO_METRIC, length(MarketIds)});
+            _ -> emtpy_meta_storage
+        end,
+
+
 
     timer:sleep(?TASK_SLEEP),
 
-    run(Connection).
+    job(Connection).
 
 
 

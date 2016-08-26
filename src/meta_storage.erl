@@ -7,7 +7,7 @@
 
 %% API
 -export([start_link/0]).
--export([insert_game/3, get_random_game/0, delete_game/1]).
+-export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -30,8 +30,11 @@ insert_game(GameId, MarketIds, SelectionIds) ->
 get_random_game() ->
   gen_server:call(?SERVER, get_random_game).
 
+get_market_ids(GameId) ->
+    gen_server:call(?SERVER, {get_market_ids, GameId}).
+
 delete_game(GameId) ->
-  gen_server:call(?SERVER, {delete_game, GameId}).
+  gen_server:cast(?SERVER, {delete_game, GameId}).
 
 
 %%--------------------------------------------------------------------
@@ -87,10 +90,8 @@ init([]) ->
 handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     GameId = ets:first(Game_Info_Tab),
     {reply, GameId, State};
-handle_call({delete_game, GameId}, _From, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
+handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     MarketIds = ets:lookup(Game_Info_Tab, GameId),
-    ets:delete(Game_Info_Tab, GameId),
-    [ets:delete(Selection_Tab, MarketId) || MarketId <- MarketIds],
     {reply, MarketIds, State };
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -110,6 +111,11 @@ handle_cast({insert_game, GameId, MarketIds, Selections}, #state{game_info_tab=G
   ets:insert(Game_Info_Tab, {GameId, MarketIds}),
   [ets:insert(Selection_Tab, {MarketId, SelectionIds}) || {MarketId, SelectionIds}  <- Selections],
   {noreply, State};
+handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
+    MarketIds = ets:lookup(Game_Info_Tab, GameId),
+    ets:delete(Game_Info_Tab, GameId),
+    [ets:delete(Selection_Tab, MarketId) || MarketId <- MarketIds],
+    {noreply, State};
 handle_cast(_Request, State) ->
   {noreply, State}.
 

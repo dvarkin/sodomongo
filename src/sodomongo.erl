@@ -1,15 +1,11 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/3]).
+-export([start/0, start_deps/0]).
 
 start() ->
     start_deps(),
     ok = application:start(sodomongo),
     net_adm:world().
-
-start_test(Workers, Rate, Mins) ->
-    Pids = [Pid || {ok, Pid} <- [muter_sup:start_kinder() || _ <- lists:seq(1, Workers)]],
-    [kinder:job(Pid, {start, Rate, Mins}) || Pid <- Pids].
 
 start_deps() ->
     ok = application:ensure_started(crypto),
