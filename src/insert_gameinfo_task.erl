@@ -5,27 +5,38 @@
 -export([run/1, generate_data/0]).
 
 -define(TASK_SLEEP, 1000).
+-define(GAME_INFO_METRIC, <<"insert_game_info">>).
+-define(MARKET_INFO_METRIC, <<"insert_market_info">>).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
+run(Connection) -> 
 
-run(Connection) ->
+    %% init metrics
+
+    metrics:create(meter, ?GAME_INFO_METRIC),
+    metrics:create(meter, ?MARKET_INFO_METRIC),
+
+    %% MAIN TASK
+    job(Connection).
+    
+
+job(Connection) ->
 
     {GameInfo, Markets,GameId, MarketIds, SelectionIds} = generate_data(),
 
     meta_storage:insert_game(GameId, MarketIds, SelectionIds),
-    
     mc_worker_api:insert(Connection, <<"gameinfo">>, GameInfo),
     [mc_worker_api:insert(Connection, <<"marketinfo">>, Market) || Market <- Markets],
     
-    metrics:notify({<<"insert_name_info">>, 1}),
-    metrics:notify({<<"insert_market_info">>, length(Markets)}),
+    metrics:notify({?GAME_INFO_METRIC, 1}),
+    metrics:notify({?MARKET_INFO_METRIC, length(Markets)}),
     
     timer:sleep(?TASK_SLEEP),
     
-    run(Connection).
+    job(Connection).
 
 
 %%--------------------------------------------------------------------
