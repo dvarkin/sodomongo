@@ -12,7 +12,7 @@
 %% API
 -export([run/1]).
 
--define(TASK_SLEEP, 1000).
+-define(TASK_SLEEP, 50).
 -define(RATE, atom_to_binary(?MODULE, utf8)).
 
 create_indexes(Connection) ->
