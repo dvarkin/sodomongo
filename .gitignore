@@ -19,3 +19,4 @@ sodomongo.d
 apps/
 *#
 rel/sys.config
+*.beam
