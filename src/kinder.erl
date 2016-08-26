@@ -9,6 +9,7 @@
 -export([state/1]).
 -export([start/1, start/3]).
 -export([stop/1]).
+-export([connect_to_mongo/1]).
 
 %% STATES
 
@@ -25,11 +26,13 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {connection :: pid() | undefined, 
-		connection_args :: list(), 
-		task_module :: atom(), 
-		task_time :: pos_integer(), 
-		task_pid :: pid() | undefined}).
+-record(state, {
+    connection :: pid() | undefined,
+    connection_args :: list(),
+    task_module :: atom(),
+    task_time :: pos_integer(),
+    task_pid :: pid() | undefined
+}).
 
 %% API.
 
@@ -121,7 +124,7 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
     %% CONNECT TO MONGO 
     %% Start task immedietly
 
-    {ok, Connection} = mc_worker_api:connect(ConnectionArgs),
+    {ok, Connection} = connect_to_mongo(ConnectionArgs),
     
     P = start_job(Connection, Task_Module, Time),
 
@@ -133,7 +136,7 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
   
     %% JUST CONNECT TO MONGO
 
-    {ok, Connection} = mc_worker_api:connect(ConnectionArgs),
+    {ok, Connection} = connect_to_mongo(ConnectionArgs),
 
     hugin:worker_monitor(self(), undefined, 'WAIT_JOB'),
     {next_state, 'WAIT_JOB', StateData#state{connection  = Connection}};
@@ -168,7 +171,15 @@ terminate(Reason, _StateName, _StateData) ->
 code_change(_OldVsn, StateName, StateData, _Extra) ->
 	{ok, StateName, StateData}.
 
+select_host(Hosts) ->
+    Index = rand:uniform(length(Hosts)),
+    lists:nth(Index, Hosts).
 
+connect_to_mongo(ConnectionArgs) ->
+    Hosts = proplists:get_value(host, ConnectionArgs),
+    Host = select_host(Hosts),
+    WithOneHost = lists:keyreplace(host, 1, ConnectionArgs, {host, Host}),
+    mc_worker_api:connect(WithOneHost).
 
 %%% INTERNAL
 
