@@ -53,6 +53,6 @@ generate_data() ->
     {GameInfo, Markets} = generator:new_game_with_markets(),
     #{?ID := GameId} = GameInfo,
     MarketIds = [Id || #{?ID := Id} <- Markets],
-    Selections = [Selections || #{?SELECTIONS := Selections} <- Markets],
-    SelectionIds = lists:flatten([Id || #{?ID := Id} <- Selections]),
+    SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
+%    SelectionIds = [Id || #{?ID := Id} <- Selections],
     {GameInfo, Markets,GameId, MarketIds, SelectionIds}.

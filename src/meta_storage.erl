@@ -7,7 +7,7 @@
 
 %% API
 -export([start_link/0]).
--export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1]).
+-export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1, get_selections/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -32,6 +32,9 @@ get_random_game() ->
 
 get_market_ids(GameId) ->
     gen_server:call(?SERVER, {get_market_ids, GameId}).
+
+get_selections(MarketId) ->
+    gen_server:call(?SERVER, {get_selections, MarketId}).
 
 delete_game(GameId) ->
   gen_server:cast(?SERVER, {delete_game, GameId}).
@@ -91,8 +94,11 @@ handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = Stat
     GameId = ets:first(Game_Info_Tab),
     {reply, GameId, State};
 handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
-    MarketIds = get_markets_by_event_id(Game_Info_Tab, GameId),
+    MarketIds = get_item_by_id(Game_Info_Tab, GameId),
     {reply, MarketIds, State };
+handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Info_Tab} = State) ->
+    Selections = get_item_by_id(Market_Info_Tab, MarketId),
+    {reply, Selections, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -109,10 +115,10 @@ handle_call(_Request, _From, State) ->
   {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast({insert_game, GameId, MarketIds, Selections}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab} = State) ->
   ets:insert(Game_Info_Tab, {GameId, MarketIds}),
-  [ets:insert(Selection_Tab, {MarketId, SelectionIds}) || {MarketId, SelectionIds}  <- Selections],
+  [ets:insert(Selection_Tab, Selection) || Selection  <- Selections],
   {noreply, State};
 handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
-    MarketIds = get_markets_by_event_id(Game_Info_Tab, GameId),
+    MarketIds = get_item_by_id(Game_Info_Tab, GameId),
     ets:delete(Game_Info_Tab, GameId),
     [ets:delete(Selection_Tab, MarketId) || MarketId <- MarketIds],
     {noreply, State};
@@ -171,8 +177,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 
-get_markets_by_event_id(Game_Info_Tab, GameId) ->
-    case ets:lookup(Game_Info_Tab, GameId) of
-        [{GameId, MarketIds}] -> MarketIds;
+get_item_by_id(Table, Id) ->
+    case ets:lookup(Table, Id) of
+        [{Id, Item}] ->  Item;
         _ -> []
     end.
