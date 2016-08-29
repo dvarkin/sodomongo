@@ -33,7 +33,7 @@ get_gameinfo_ids(Connection) ->
 
 job(Connection, GameInfoIds) ->
 
-    {Time, _Value} = timer:tc(
+    folsom_metrics:histogram_timed_update(?TIME,
         fun() ->
             Cursor = mc_worker_api:find(
                 Connection,
@@ -46,7 +46,6 @@ job(Connection, GameInfoIds) ->
         end),
 
     metrics:notify({?RATE, 1}),
-    metrics:notify({?TIME, Time}),
 
     timer:sleep(?TASK_SLEEP),
 
@@ -56,5 +55,5 @@ run(Connection) ->
     create_indexes(Connection),
     GameInfoIds = get_gameinfo_ids(Connection),
     metrics:create(meter, ?RATE),
-    metrics:create(gauge, ?TIME),
+    metrics:create(histogram, ?TIME),
     job(Connection, GameInfoIds).
