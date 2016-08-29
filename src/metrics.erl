@@ -30,7 +30,8 @@ start_link() ->
 
 create(Type, Name) ->
     case folsom_metrics:metric_exists(Name) of
-        true -> folsom_metrics:delete_metric(Name)
+        true -> folsom_metrics:delete_metric(Name);
+        _ -> ok
     end,
     gen_server:cast(?SERVER, {create, Type, Name}).
 

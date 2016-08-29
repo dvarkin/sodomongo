@@ -34,7 +34,6 @@ start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskMod
     hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
     hugin:start_job(ReadTaskModule, ReadWorkers, Time).
 
-
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
     start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
 
