@@ -129,8 +129,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 gen_node() ->
     Nodes = nodes(),
-    Index = rand:uniform(length(Nodes)),
-    lists:nth(Index,Nodes).
+    util:rand_nth(Nodes).
 
 start_worker(N, ConnectionArgs, Task_Module, Time) when N > 0 ->
     spawn(fun() ->

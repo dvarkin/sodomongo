@@ -20,35 +20,41 @@
 create_indexes(Connection) ->
     mc_worker_api:ensure_index(Connection, <<"gameinfo">>, #{<<"key">> => {<<"BranchID">>, <<"hashed">>}}).
 
-job(Connection) ->
+get_gameinfo_ids(Connection) ->
+    Cursor = mc_worker_api:find(
+        Connection,
+        <<"gameinfo">>
+        #{},
+        [{projector, {<<"ID">>, true}}]
+    ),
+    Result = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Result.
+
+job(Connection, GameInfoIds) ->
 
     {Time, _Value} = timer:tc(
         fun() ->
-            mc_worker_api:command(Connection, #{
-                <<"aggregate">> => <<"gameinfo">>,
-                <<"pipeline">> => [
-                    #{
-                        <<"$group">> => #{
-                            <<"_id">> => #{<<"BranchID">> => <<"$BranchID">>},
-                            <<"gameinfos">> => #{
-                                <<"$push">> => #{
-                                    <<"gameinfo">> => <<"$$CURRENT">>
-                                }
-                            }
-                        }
-                    }
-                ]
-            })
+            Cursor = mc_worker_api:find(
+                Connection,
+                <<"gameinfo">>,
+                #{
+                    <<"BranchId">> => #{ <<"$eq">> => util:rand_nth(GameInfoIds) }
+                }
+            ),
+            mc_cursor:rest(Cursor)
         end),
 
     metrics:notify({?RATE, 1}),
     metrics:notify({?TIME, Time}),
+
     timer:sleep(?TASK_SLEEP),
 
-    job(Connection).
+    job(Connection, GameInfoIds).
 
 run(Connection) ->
     create_indexes(Connection),
+    GameInfoIds = get_gameinfo_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(gauge, ?TIME),
-    job(Connection).
+    job(Connection, GameInfoIds).
