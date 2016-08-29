@@ -56,5 +56,5 @@ run(Connection) ->
     create_indexes(Connection),
     GameInfoIds = get_gameinfo_ids(Connection),
     metrics:create(meter, ?RATE),
-    metrics:create(gauge, ?TIME),
+    metrics:create(histogram, ?TIME),
     job(Connection, GameInfoIds).
