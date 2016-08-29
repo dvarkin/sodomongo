@@ -52,6 +52,10 @@ handle_cast({create, meter, Name}, State) ->
     folsom_metrics:new_meter(Name),
     {noreply, State};
 
+handle_cast({create, histogram, Name}, State) ->
+    folsom_metrics:new_histogram(Name),
+    {noreply, State};
+
 handle_cast({create, gauge, Name}, State) ->
     folsom_metrics:new_gauge(Name),
     {noreply, State};
