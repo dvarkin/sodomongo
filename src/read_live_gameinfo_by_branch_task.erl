@@ -23,7 +23,7 @@ create_indexes(Connection) ->
 get_gameinfo_ids(Connection) ->
     Cursor = mc_worker_api:find(
         Connection,
-        <<"gameinfo">>
+        <<"gameinfo">>,
         #{},
         [{projector, {<<"ID">>, true}}]
     ),

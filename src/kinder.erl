@@ -122,7 +122,7 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
   when Task_Module /= undefined ->
     
     %% CONNECT TO MONGO 
-    %% Start task immedietly
+    %% Start task immediately
 
     {ok, Connection} = connect_to_mongo(ConnectionArgs),
     
