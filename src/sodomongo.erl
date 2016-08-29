@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/4, init_test/0]).
+-export([start/0, start_deps/0, start_test/4, start_test/6, init_test/0]).
 
 start() ->
     start_deps(),
@@ -26,9 +26,15 @@ init_test() ->
     {ok, Connection} = kinder:connect_to_mongo(ConnectionArgs),
     init_test:run(Connection).
 
-start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
+
+start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
     init_test(),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
     hugin:start_job(update_odd_task, UpdateWorkers, Time),
-    hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time).
-    
+    hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
+    hugin:start_job(ReadTaskModule, ReadWorkers, Time).
+
+
+start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
+    start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
+
