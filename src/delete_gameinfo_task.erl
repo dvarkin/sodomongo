@@ -25,8 +25,7 @@ run(Connection) ->
 job(Connection) ->
         case meta_storage:get_random_game() of
             GameId when is_integer(GameId) ->
-            
-                [{_, MarketIds}] = meta_storage:get_market_ids(GameId),
+                MarketIds = meta_storage:get_market_ids(GameId),
                 mc_worker_api:delete(Connection, <<"gameinfo">>, #{?ID => GameId}),
 %%                error_logger:info_msg("market ids: ~p", [MarketIds]),
                 [mc_worker_api:delete(Connection, <<"marketinfo">>, #{?ID => MarketId}) || MarketId <- MarketIds],

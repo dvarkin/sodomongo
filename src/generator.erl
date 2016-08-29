@@ -1,6 +1,17 @@
 -module(generator).
 -include("generator.hrl").
--export([new_market_info/0, new_market_info/2, new_game_info/0, new_game_info/2, new_game_with_markets/0]).
+-export([new_market_info/0, 
+         new_market_info/2,
+         new_game_info/0,
+         new_game_info/2, 
+         new_game_with_markets/0,
+         new_selections/2]).
+
+
+%% TOOLS
+
+-export([rand_nth/1, new_odd/0]).
+
 
 -define(DONT_GIVE_A_FUCK, 42).
 
@@ -112,6 +123,8 @@ new_selection_info(Extras) ->
 
   maps:merge(Selection, Extras).
 
+new_selections(From, To) ->
+    [new_selection_info(#{?GROUP_ID => 10}) || _ <- lists:seq(1, rand_int(From, To))].
 
 new_market_info() ->
   #{
@@ -125,7 +138,7 @@ new_market_info() ->
     ?START_DATE => os:timestamp(),
     ?TEAM_SWAP => rand_bool(),
     ?MARKET_BETS => new_bet_statistics(),
-    ?SELECTIONS => [new_selection_info(#{?GROUP_ID => 10}) || _ <- lists:seq(1, rand_int(10, 20))]
+    ?SELECTIONS => new_selections(10,20) 
   }.
 
 new_market_info(leagueId, LeagueId) ->
