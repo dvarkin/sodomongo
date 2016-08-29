@@ -33,3 +33,7 @@
 -define(POINTS, <<"Points">>).
 -define(QAPARAM1, <<"QAParam1">>).
 -define(QAPARAM2, <<"QAParam2">>).
+
+-define(MARKETINFO, <<"marketinfo">>).
+-define(GAMEINFO, <<"gameinfo">>).
+

@@ -13,9 +13,9 @@
 %%% API
 %%%===================================================================
 
-create_indexes(Connection) ->
-    mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {?ID, <<"hashed">>}}),
-    mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {<<"Selections.ID">>,1}}).
+%% create_indexes(Connection) ->
+%%     mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {?ID, <<"hashed">>}}),
+%%     mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {<<"Selections.ID">>,1}}).
 
 
 
@@ -26,7 +26,6 @@ run(Connection) ->
     metrics:create(histogram, ?TIME),
 
     %% Mian task
-    create_indexes(Connection),
     job(Connection).
 
 job(Connection) ->

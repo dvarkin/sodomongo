@@ -54,12 +54,13 @@ generate_data() ->
     {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
 
 insert_gameinfo(Connection, GameInfo) ->
-    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"gameinfo">>, GameInfo), ?GAMEINFO_TIME),
-    metrics:notify({?GAMEINFO_RATE, 1}).
+    metrics:notify({?GAMEINFO_RATE, 1}),
+    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"gameinfo">>, GameInfo), ?GAMEINFO_TIME).
+    
 
 insert_marketinfo(_Connection, []) ->
     ok;
 insert_marketinfo(Connection, [Market | Markets]) ->
-    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"marketinfo">>, Market), ?MARKETINFO_TIME),
     metrics:notify({?MARKETINFO_RATE, 1}),
+    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"marketinfo">>, Market), ?MARKETINFO_TIME),
     insert_marketinfo(Connection, Markets).

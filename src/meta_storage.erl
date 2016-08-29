@@ -104,8 +104,8 @@ handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Inf
     {reply, Selections, State};
 handle_call(get_random_market, _From, #state{selection_tab = Market_Info_Tab} = State) ->
     MarketList = ets:tab2list(Market_Info_Tab),
-    {MarketId, Selections} = generator:rand_nth(MarketList),
-    {reply, {MarketId, Selections}, State};
+    Selections = util:rand_nth(MarketList),
+    {reply, Selections, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 

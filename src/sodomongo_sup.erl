@@ -33,4 +33,4 @@ init([]) ->
         modules => [metrics]
     },
     Procs = [Metrics, MetaStore, Hugin],
-    {ok, {{one_for_one, 1, 5}, Procs}}.
+    {ok, {{one_for_one, 100, 500}, Procs}}.

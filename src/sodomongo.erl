@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0]).
+-export([start/0, start_deps/0, start_test/4, init_test/0]).
 
 start() ->
     start_deps(),
@@ -20,3 +20,15 @@ start_deps() ->
     ok = application:ensure_started(compiler),
     ok = application:ensure_started(syntax_tools).
 
+
+init_test() ->
+    {ok, ConnectionArgs} = application:get_env(sodomongo, mongo_connection),
+    {ok, Connection} = kinder:connect_to_mongo(ConnectionArgs),
+    init_test:run(Connection).
+
+start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
+    init_test(),
+    hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
+    hugin:start_job(update_odd_task, UpdateWorkers, Time),
+    hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time).
+    
