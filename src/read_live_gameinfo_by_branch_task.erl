@@ -24,8 +24,8 @@ get_gameinfo_ids(Connection) ->
     Cursor = mc_worker_api:find(
         Connection,
         <<"gameinfo">>,
-        {},
-        [{projector, {<<"ID">>, true}}]
+        #{},
+        #{projector => {<<"ID">>, true}}
     ),
     Result = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
