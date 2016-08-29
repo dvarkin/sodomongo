@@ -14,8 +14,8 @@
 %%%===================================================================
 
 %% create_indexes(Connection) ->
-%%     mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {?ID, <<"hashed">>}}),
-%%     mc_worker_api:ensure_index(Connection, <<"marketinfo">>, #{<<"key">> => {<<"Selections.ID">>,1}}).
+%%     mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
+%%     mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>,1}}).
 
 
 
@@ -45,5 +45,5 @@ job(Connection) ->
 update_odd(Connection, MarketId, SelectionId) ->
     Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
     Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
-    ?GPROF_TIME_METRIC(mc_worker_api:update(Connection, <<"marketinfo">>, Query, Command), ?TIME),
+    ?GPROF_TIME_METRIC(mc_worker_api:update(Connection, ?MARKETINFO, Query, Command), ?TIME),
     metrics:notify({?RATE, 1}).
