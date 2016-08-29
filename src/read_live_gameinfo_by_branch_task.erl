@@ -12,13 +12,12 @@
 %% API
 -export([run/1]).
 
+-include("profiler.hrl").
+
 -define(TASK_SLEEP, 50).
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
-
-create_indexes(Connection) ->
-    mc_worker_api:ensure_index(Connection, <<"gameinfo">>, #{<<"key">> => {<<"BranchID">>, <<"hashed">>}}).
 
 get_gameinfo_ids(Connection) ->
     Cursor = mc_worker_api:find(
@@ -33,8 +32,8 @@ get_gameinfo_ids(Connection) ->
 
 job(Connection, GameInfoIds) ->
 
-    {Time, _Value} = timer:tc(
-        fun() ->
+    ?GPROF_TIME_METRIC(
+        begin
             Cursor = mc_worker_api:find(
                 Connection,
                 <<"gameinfo">>,
@@ -43,17 +42,16 @@ job(Connection, GameInfoIds) ->
                 }
             ),
             mc_cursor:rest(Cursor)
-        end),
+        end,
+        ?TIME),
 
     metrics:notify({?RATE, 1}),
-    metrics:notify({?TIME, Time}),
 
     timer:sleep(?TASK_SLEEP),
 
     job(Connection, GameInfoIds).
 
 run(Connection) ->
-    create_indexes(Connection),
     GameInfoIds = get_gameinfo_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),

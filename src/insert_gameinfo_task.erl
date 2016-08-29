@@ -6,7 +6,7 @@
 -export([run/1, generate_data/0]).
 
 -define(TASK_SLEEP, 1000).
--define(GAMEINFO_METRICS, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
+-define(GAMEINFO_METRICS, <<"insert_gameinfo_task_metrics">>).
 -define(MARKETINFO_METRICS, <<"insert_marketinfo_task_metrics">>).
 
 -define(GAMEINFO_RATE, <<?GAMEINFO_METRICS/binary, ".rate">>).

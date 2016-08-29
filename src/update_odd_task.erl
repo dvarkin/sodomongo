@@ -29,13 +29,12 @@ run(Connection) ->
     job(Connection).
 
 job(Connection) ->
-        case meta_storage:get_random_market() of
-            {MarketId, SelectionIds} ->
-                SelectionId = generator:rand_nth(SelectionIds),
-                update_odd(Connection, MarketId, SelectionId);
-            _ -> emtpy_meta_storage
-        end,
-
+    case meta_storage:get_random_market() of
+        {MarketId, SelectionIds} ->
+            SelectionId = generator:rand_nth(SelectionIds),
+            update_odd(Connection, MarketId, SelectionId);
+        _ -> emtpy_meta_storage
+    end,
 
 
 %    timer:sleep(?TASK_SLEEP),

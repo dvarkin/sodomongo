@@ -29,6 +29,9 @@ start_link() ->
     gen_server:start_link(?SERVER, ?MODULE, [], []).
 
 create(Type, Name) ->
+    case folsom_metrics:metric_exists(Name) of
+        true -> folsom_metrics:delete_metric(Name)
+    end,
     gen_server:cast(?SERVER, {create, Type, Name}).
 
 notify(Arg) ->
