@@ -1,12 +1,20 @@
 -module(insert_gameinfo_task).
 -include("generator.hrl").
+-include("profiler.hrl").
 
 %% API
 -export([run/1, generate_data/0]).
 
 -define(TASK_SLEEP, 1000).
--define(GAME_INFO_METRIC, <<"insert_game_info">>).
--define(MARKET_INFO_METRIC, <<"insert_market_info">>).
+-define(GAMEINFO_METRICS, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
+-define(MARKETINFO_METRICS, <<"insert_marketinfo_task_metrics">>).
+
+-define(GAMEINFO_RATE, <<?GAMEINFO_METRICS/binary, ".rate">>).
+-define(GAMEINFO_TIME, <<?GAMEINFO_METRICS/binary, ".time">>).
+
+-define(MARKETINFO_RATE, <<?MARKETINFO_METRICS/binary, ".rate">>).
+-define(MARKETINFO_TIME, <<?MARKETINFO_METRICS/binary, ".time">>).
+
 
 %%%===================================================================
 %%% API
@@ -16,34 +24,22 @@ run(Connection) ->
 
     %% init metrics
 
-    metrics:create(meter, ?GAME_INFO_METRIC),
-    metrics:create(meter, ?MARKET_INFO_METRIC),
+    metrics:create(meter, ?GAMEINFO_RATE),
+    metrics:create(gauge, ?GAMEINFO_TIME),
+    metrics:create(meter, ?MARKETINFO_RATE),
+    metrics:create(gauge, ?MARKETINFO_TIME),
 
     %% MAIN TASK
     job(Connection).
     
 
 job(Connection) ->
-
     {GameInfo, Markets,GameId, MarketIds, SelectionIds} = generate_data(),
-
     meta_storage:insert_game(GameId, MarketIds, SelectionIds),
-    mc_worker_api:insert(Connection, <<"gameinfo">>, GameInfo),
-    [mc_worker_api:insert(Connection, <<"marketinfo">>, Market) || Market <- Markets],
-    
-    metrics:notify({?GAME_INFO_METRIC, 1}),
-    metrics:notify({?MARKET_INFO_METRIC, length(Markets)}),
-    
+    insert_gameinfo(Connection, GameInfo),
+    insert_marketinfo(Connection, Markets),    
     timer:sleep(?TASK_SLEEP),
-    
     job(Connection).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @spec
-%% @end
-%%--------------------------------------------------------------------
 
 %%%===================================================================
 %%% Internal functions
@@ -56,3 +52,14 @@ generate_data() ->
     SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
 %    SelectionIds = [Id || #{?ID := Id} <- Selections],
     {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
+
+insert_gameinfo(Connection, GameInfo) ->
+    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"gameinfo">>, GameInfo), ?GAMEINFO_TIME),
+    metrics:notify({?GAMEINFO_RATE, 1}).
+
+insert_marketinfo(_Connection, []) ->
+    ok;
+insert_marketinfo(Connection, [Market | Markets]) ->
+    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, <<"marketinfo">>, Market), ?MARKETINFO_TIME),
+    metrics:notify({?MARKETINFO_RATE, 1}),
+    insert_marketinfo(Connection, Markets).
