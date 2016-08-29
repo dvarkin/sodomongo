@@ -1,5 +1,6 @@
 -module(update_odd_task).
 -include("generator.hrl").
+-include("profiler.hrl").
 
 -export([run/1]).
 
@@ -22,7 +23,7 @@ run(Connection) ->
     
     %% init metrics
     metrics:create(meter, ?RATE),
-    metrics:create(gauge, ?TIME),
+    metrics:create(histogram, ?TIME),
 
     %% Mian task
     create_indexes(Connection),
@@ -32,14 +33,7 @@ job(Connection) ->
         case meta_storage:get_random_market() of
             {MarketId, SelectionIds} ->
                 SelectionId = generator:rand_nth(SelectionIds),
-                Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
-                Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
-                {Time, _Value} = timer:tc(
-                                   fun() ->
-                                           mc_worker_api:update(Connection, <<"marketinfo">>, Query, Command)
-                                   end),
-                metrics:notify({?RATE, 1}),
-                metrics:notify({?TIME, Time});
+                update_odd(Connection, MarketId, SelectionId);
             _ -> emtpy_meta_storage
         end,
 
@@ -49,9 +43,8 @@ job(Connection) ->
 
     job(Connection).
 
-
-
-
-
-
-
+update_odd(Connection, MarketId, SelectionId) ->
+    Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
+    Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
+    ?GPROF_TIME_METRIC(mc_worker_api:update(Connection, <<"marketinfo">>, Query, Command), ?TIME),
+    metrics:notify({?RATE, 1}).

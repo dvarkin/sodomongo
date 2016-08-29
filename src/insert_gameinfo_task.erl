@@ -25,9 +25,9 @@ run(Connection) ->
     %% init metrics
 
     metrics:create(meter, ?GAMEINFO_RATE),
-    metrics:create(gauge, ?GAMEINFO_TIME),
+    metrics:create(histogram, ?GAMEINFO_TIME),
     metrics:create(meter, ?MARKETINFO_RATE),
-    metrics:create(gauge, ?MARKETINFO_TIME),
+    metrics:create(histogram, ?MARKETINFO_TIME),
 
     %% MAIN TASK
     job(Connection).
