@@ -7,6 +7,12 @@
          new_game_with_markets/0,
          new_selections/2]).
 
+
+%% TOOLS
+
+-export([rand_nth/1, new_odd/0]).
+
+
 -define(DONT_GIVE_A_FUCK, 42).
 
 %%% Limits %%%

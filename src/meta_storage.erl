@@ -7,7 +7,7 @@
 
 %% API
 -export([start_link/0]).
--export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1, get_selections/1]).
+-export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1, get_selections/1, get_random_market/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -29,6 +29,9 @@ insert_game(GameId, MarketIds, SelectionIds) ->
 
 get_random_game() ->
   gen_server:call(?SERVER, get_random_game).
+
+get_random_market() ->
+    gen_server:call(?SERVER, get_random_market).
 
 get_market_ids(GameId) ->
     gen_server:call(?SERVER, {get_market_ids, GameId}).
@@ -99,6 +102,10 @@ handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Ta
 handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Info_Tab} = State) ->
     Selections = get_item_by_id(Market_Info_Tab, MarketId),
     {reply, Selections, State};
+handle_call(get_random_market, _From, #state{selection_tab = Market_Info_Tab} = State) ->
+    MarketList = ets:tab2list(Market_Info_Tab),
+    {MarketId, Selections} = generator:rand_nth(MarketList),
+    {reply, {MarketId, Selections}, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
