@@ -2,6 +2,8 @@
 
 -export([start/0, start_deps/0, start_test/4, start_test/6, init_test/0]).
 
+-include("generator.hrl").
+
 start() ->
     start_deps(),
     ok = application:start(sodomongo),
@@ -25,7 +27,28 @@ init_test() ->
     {ok, ConnectionArgs} = application:get_env(sodomongo, mongo_connection),
     AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),
     {ok, AdminConnection} = kinder:connect_to_mongo(AdminConnectionArgs),
-    init_test:run(AdminConnection).
+    {ok, DbConnection} = kinder:connect_to_mongo(ConnectionArgs),
+
+    {true, _} = mc_worker_api:command(DbConnection, #{<<"dropDatabase">> => 1}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"enableSharding">> => ?DB}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"drop">> => ?GAMEINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"drop">> => ?MARKETINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"create">> => ?GAMEINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"create">> => ?MARKETINFO}),
+
+    mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
+    mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>, 1}}),
+    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?GAME_ID, <<"hashed">> }}),
+    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?BRANCH_ID, <<"hashed">> }}),
+
+    {true, _} = mc_worker_api:command(AdminConnection, {
+        <<"shardCollection">>, ?GAMEINFO,
+        <<"key">>, {?GAME_ID, <<"hashed">>}
+    }),
+    {true, _} = mc_worker_api:command(AdminConnection, {
+        <<"shardCollection">>, ?MARKETINFO,
+        <<"key">>, {?ID, <<"hashed">>}
+    }).
 
 
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
