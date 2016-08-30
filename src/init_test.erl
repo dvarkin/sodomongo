@@ -5,8 +5,8 @@
 -export([run/1]).
 
 run(Connection) ->
-    mc_worker_api:command(Connection, #{<<"dropDatabase">>, 1}),
-    mc_worker_api:command(Connection, #{<<"enableSharding">>, ?DB}),
+    mc_worker_api:command(Connection, #{<<"dropDatabase">> => 1}),
+    mc_worker_api:command(Connection, #{<<"enableSharding">> => ?DB}),
 
     mc_worker_api:command(Connection, #{<<"drop">> => ?GAMEINFO}),
     mc_worker_api:command(Connection, #{<<"drop">> => ?MARKETINFO}),
