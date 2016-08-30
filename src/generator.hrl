@@ -37,3 +37,5 @@
 -define(MARKETINFO, <<"marketinfo">>).
 -define(GAMEINFO, <<"gameinfo">>).
 
+-define(DB, <<"test">>).
+
