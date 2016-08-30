@@ -4,26 +4,26 @@
 
 -export([run/1]).
 
-run(Connection) ->
-    {true, _} = mc_worker_api:command(Connection, #{<<"dropDatabase">> => 1}),
-    {true, _} = mc_worker_api:command(Connection, #{<<"enableSharding">> => ?DB}),
-    {true, _} = mc_worker_api:command(Connection, #{<<"drop">> => ?GAMEINFO}),
-    {true, _} = mc_worker_api:command(Connection, #{<<"drop">> => ?MARKETINFO}),
-    {true, _} = mc_worker_api:command(Connection, #{<<"create">> => ?GAMEINFO}),
-    {true, _} = mc_worker_api:command(Connection, #{<<"create">> => ?MARKETINFO}),
+run(AdminConnection) ->
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"dropDatabase">> => 1}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"enableSharding">> => ?DB}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"drop">> => ?GAMEINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"drop">> => ?MARKETINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"create">> => ?GAMEINFO}),
+    {true, _} = mc_worker_api:command(AdminConnection, #{<<"create">> => ?MARKETINFO}),
 
-    mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
-    mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>, 1}}),
-    mc_worker_api:ensure_index(Connection, ?GAMEINFO, #{<<"key">> => {?GAME_ID, <<"hashed">> }}),
-    mc_worker_api:ensure_index(Connection, ?GAMEINFO, #{<<"key">> => {?BRANCH_ID, <<"hashed">> }}),
+    mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
+    mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>, 1}}),
+    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?GAME_ID, <<"hashed">> }}),
+    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?BRANCH_ID, <<"hashed">> }}),
 
-    {true, _} = mc_worker_api:command(Connection, #{
+    {true, _} = mc_worker_api:command(AdminConnection, #{
         <<"shardCollection">> => ?GAMEINFO,
         <<"key">> => #{?GAME_ID => <<"hashed">>}
     }),
-    {true, _} = mc_worker_api:command(Connection, #{
-        <<"shardCollection">> => <<"marketinfo">>,
-        <<"key">> => #{<<"ID">> => <<"hashed">>}
+    {true, _} = mc_worker_api:command(AdminConnection, #{
+        <<"shardCollection">> => ?MARKETINFO,
+        <<"key">> => #{?ID => <<"hashed">>}
     }).
 
 

@@ -23,8 +23,9 @@ start_deps() ->
 
 init_test() ->
     {ok, ConnectionArgs} = application:get_env(sodomongo, mongo_connection),
-    {ok, Connection} = kinder:connect_to_mongo(ConnectionArgs),
-    init_test:run(Connection).
+    AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),
+    {ok, AdminConnection} = kinder:connect_to_mongo(AdminConnectionArgs),
+    init_test:run(AdminConnection).
 
 
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
