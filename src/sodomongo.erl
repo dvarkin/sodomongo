@@ -3,6 +3,7 @@
 -export([start/0, start_deps/0, start_test/4, start_test/6, init_test/0]).
 
 start() ->
+%    cloud:start(),
     start_deps(),
     ok = application:start(sodomongo),
     net_adm:world().
