@@ -10,8 +10,6 @@ else
   START_MODULE="sodomongo start_deps"
 fi
 
-echo $START_MODULE
-
 erl -name "${NAME}@${IP}" \
     -pa deps/bson/ebin \
     -pa deps/mongodb/ebin \
@@ -25,4 +23,5 @@ erl -name "${NAME}@${IP}" \
     -pa deps/sync/ebin/ \
     -pa ebin/ \
     -config rel/sys \
-    -s ${START_MODULE}
+    -s ${START_MODULE} \
+    ${@:4}
