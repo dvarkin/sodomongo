@@ -65,6 +65,10 @@ init([]) ->
     metrics:create(gauge, <<"worker.awaiting">>),
     timer:send_interval(10000, send_metrics),
 
+    kinder_metrics:init(),
+    {ok, UpdateInterval} = application:get_env(folsomite, flush_interval),
+    timer:apply_interval(UpdateInterval, kinder_metrics, notify, []),
+
     {ok, Connection} = application:get_env(sodomongo, mongo_connection),
     {ok, #state{mongo_connection = Connection}}.
 
