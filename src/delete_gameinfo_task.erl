@@ -10,9 +10,11 @@
 
 -define(GAMEINFO_RATE, <<?GAMEINFO_METRICS/binary, ".rate">>).
 -define(GAMEINFO_TIME, <<?GAMEINFO_METRICS/binary, ".time">>).
+-define(GAMEINFO_DOC_COUNT, <<?GAMEINFO_METRICS/binary, ".documents_count">>).
 
 -define(MARKETINFO_RATE, <<?MARKETINFO_METRICS/binary, ".rate">>).
 -define(MARKETINFO_TIME, <<?MARKETINFO_METRICS/binary, ".time">>).
+-define(MARKETINFO_DOC_COUNT, <<?MARKETINFO_METRICS/binary, ".documents_count">>).
 
 %%%===================================================================
 %%% API
@@ -44,12 +46,28 @@ job(Connection) ->
     job(Connection).
 
 delete_gameinfo(Connection, GameId) ->
-    profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}) end),
+    Response = profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}) end),
+    case Response of
+        {false, _} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
+        {true, #{ <<"writeErrors">> := WriteErrors}} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
+        {true,  #{ <<"n">> := N }}
+            -> metrics:notify({?GAMEINFO_DOC_COUNT, N})
+    end,
     metrics:notify({?GAMEINFO_RATE, 1}).
 
 delete_marketinfo(_Connection, []) ->
     ok;
 delete_marketinfo(Connection, [MarketId | MarketIds]) ->
-    profiler:prof(?MARKETINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId}) end),
+    Response = profiler:prof(?MARKETINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId}) end),
+    case Response of
+        {false, _} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
+        {true, #{ <<"writeErrors">> := WriteErrors}} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
+        {true,  #{ <<"n">> := N }}
+            -> metrics:notify({?GAMEINFO_DOC_COUNT, N})
+    end,
     metrics:notify({?MARKETINFO_RATE, 1}),
     delete_gameinfo(Connection, MarketIds).
