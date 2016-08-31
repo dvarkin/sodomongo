@@ -20,20 +20,22 @@
 -define(TIME, <<?TASK/binary, ".time">>).
 -define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
 
-get_gameinfo_ids(Connection) ->
+get_branch_ids(Connection) ->
     Cursor = mc_worker_api:find(
         Connection,
         <<"gameinfo">>,
         #{},
-        #{projector => {<<"ID">>, true}}
+        #{projector => {?BRANCH_ID, true}}
     ),
-    Result = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Result.
 
-job(Connection, GameInfoIds) ->
+    Result = mc_cursor:rest(Cursor),
+    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
+    mc_cursor:close(Cursor),
+    sets:to_list(sets:from_list(BranchIDs)).
+
+job(Connection, BranchIDs) ->
     Query = #{
-        ?BRANCH_ID => #{ <<"$eq">> => util:rand_nth(GameInfoIds) },
+        ?BRANCH_ID => #{ <<"$eq">> => util:rand_nth(BranchIDs) },
         ?IS_ACTIVE => true
     },
     Collection = <<"gameinfo">>,
@@ -47,7 +49,7 @@ job(Connection, GameInfoIds) ->
             ),
             mc_cursor:rest(Cursor)
         end),
-
+    io:format("~p~n", [length(Result)]),
     if
         Result == error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
         true  ->  metrics:notify({?DOC_COUNT, length(Result)})
@@ -57,11 +59,11 @@ job(Connection, GameInfoIds) ->
 
     timer:sleep(?TASK_SLEEP),
 
-    job(Connection, GameInfoIds).
+    job(Connection, BranchIDs).
 
 run(Connection) ->
-    GameInfoIds = get_gameinfo_ids(Connection),
+    BranchIDs = get_branch_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
-    job(Connection, GameInfoIds).
+    job(Connection, BranchIDs).
