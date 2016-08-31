@@ -41,7 +41,7 @@ job(Connection) ->
     {GameInfo, Markets,GameId, MarketIds, SelectionIds} = generate_data(),
     meta_storage:insert_game(GameId, MarketIds, SelectionIds),
     insert_gameinfo(Connection, GameInfo),
-    insert_marketinfo(Connection, Markets),    
+    insert_marketinfo(Connection, Markets),
     timer:sleep(?TASK_SLEEP),
     job(Connection).
 

@@ -34,8 +34,8 @@
 -define(QAPARAM1, <<"QAParam1">>).
 -define(QAPARAM2, <<"QAParam2">>).
 
--define(MARKETINFO, <<"test.marketinfo">>).
--define(GAMEINFO, <<"test.gameinfo">>).
+-define(MARKETINFO, <<"marketinfo">>).
+-define(GAMEINFO, <<"gameinfo">>).
 
 -define(DB, <<"test">>).
 
