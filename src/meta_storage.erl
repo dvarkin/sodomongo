@@ -73,8 +73,8 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}]),
-    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}]),
+    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
+    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
     {ok, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab}}.
 
 %%--------------------------------------------------------------------
