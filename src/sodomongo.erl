@@ -38,12 +38,12 @@ init_test() ->
 
     mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
     mc_worker_api:ensure_index(AdminConnection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>, 1}}),
-    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?GAME_ID, <<"hashed">> }}),
+    mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?ID, <<"hashed">> }}),
     mc_worker_api:ensure_index(AdminConnection, ?GAMEINFO, #{<<"key">> => {?BRANCH_ID, <<"hashed">> }}),
 
     {true, _} = mc_worker_api:command(AdminConnection, {
         <<"shardCollection">>, ?GAMEINFO,
-        <<"key">>, {?GAME_ID, <<"hashed">>}
+        <<"key">>, {?ID, <<"hashed">>}
     }),
     {true, _} = mc_worker_api:command(AdminConnection, {
         <<"shardCollection">>, ?MARKETINFO,
