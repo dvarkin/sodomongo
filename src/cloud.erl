@@ -40,7 +40,7 @@ start([]) ->
     {ok, Dir} = file:get_cwd(),
     Args = make_args(Dir),
     {ok, Hosts} = application:get_env(sodomongo, hosts),
-    Nodes = [slave:start_link(sodomongo_slave, Host, Args) || Host <- Hosts],
+    Nodes = [slave:start_link(erlang:list_to_atom(Host), sodomongo_slave, Args) || Host <- Hosts],
     fallback(Nodes);
 
 start(Nodes) ->
