@@ -22,6 +22,7 @@ erl -name "${NAME}@${IP}" \
     -pa deps/protobuffs/ebin/ \
     -pa deps/sync/ebin/ \
     -pa ebin/ \
+    -boot start_sasl \
     -config rel/sys \
     -s ${START_MODULE} \
     ${@:4}
