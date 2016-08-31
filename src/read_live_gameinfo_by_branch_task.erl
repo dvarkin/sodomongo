@@ -49,7 +49,6 @@ job(Connection, BranchIDs) ->
             ),
             mc_cursor:rest(Cursor)
         end),
-    io:format("~p~n", [length(Result)]),
     if
         Result == error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
         true  ->  metrics:notify({?DOC_COUNT, length(Result)})
