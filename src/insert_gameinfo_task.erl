@@ -1,6 +1,5 @@
 -module(insert_gameinfo_task).
 -include("generator.hrl").
--include("profiler.hrl").
 
 %% API
 -export([run/1, generate_data/0]).
@@ -60,7 +59,7 @@ generate_data() ->
 
 insert_gameinfo(Connection, GameInfo) ->
     metrics:notify({?GAMEINFO_RATE, 1}),
-    {Response, _} = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo), ?GAMEINFO_TIME),
+    {Response, _} = profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo) end),
     case Response of
         {false, _} ->
             error_logger:error_msg("Can't insert GameInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
@@ -75,7 +74,7 @@ insert_marketinfo(_Connection, []) ->
     ok;
 insert_marketinfo(Connection, [Market | Markets]) ->
     metrics:notify({?MARKETINFO_RATE, 1}),
-    Response = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?MARKETINFO, Market), ?MARKETINFO_TIME),
+    {Response, _} = profiler:prof(?MARKETINFO_TIME, fun() -> mc_worker_api:insert(Connection, ?MARKETINFO, Market) end),
     case Response of
         {false, _} ->
             error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
