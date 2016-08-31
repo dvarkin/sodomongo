@@ -5,9 +5,10 @@
 -include("generator.hrl").
 
 start() ->
+    cloud:start(),
     start_deps(),
-    ok = application:start(sodomongo),
-    net_adm:world().
+    ok = application:start(sodomongo).
+%    net_adm:world().
 
 start_deps() ->
     ok = application:ensure_started(crypto),
@@ -53,6 +54,7 @@ init_test() ->
 
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
     init_test(),
+    kinder_metrics:create_jobs([insert_gameinfo_task, update_odd_task, delete_gameinfo_task, ReadTaskModule]),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
     hugin:start_job(update_odd_task, UpdateWorkers, Time),
     hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
