@@ -18,6 +18,7 @@
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
+-define(DOC_COUNT, <<?TASK/binary>>, ".documents_count").
 
 get_gameinfo_ids(Connection) ->
     Cursor = mc_worker_api:find(
@@ -32,7 +33,7 @@ get_gameinfo_ids(Connection) ->
 
 job(Connection, GameInfoIds) ->
 
-    ?GPROF_TIME_METRIC(
+    Result = ?GPROF_TIME_METRIC(
         begin
             Cursor = mc_worker_api:find(
                 Connection,
@@ -45,6 +46,11 @@ job(Connection, GameInfoIds) ->
         end,
         ?TIME),
 
+    case Result of
+        error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
+        _     -> metrics:notify({?DOC_COUNT, length(Result)})
+    end,
+
     metrics:notify({?RATE, 1}),
 
     timer:sleep(?TASK_SLEEP),
@@ -55,4 +61,5 @@ run(Connection) ->
     GameInfoIds = get_gameinfo_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
+    metrics:create(histogram, ?DOC_COUNT),
     job(Connection, GameInfoIds).

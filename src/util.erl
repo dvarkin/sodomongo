@@ -12,9 +12,11 @@
 %% API
 -export([rand_nth/1]).
 
+rand_nth([H|[]]) -> H;
+
 rand_nth([_|_] = List) ->
     Idx = rand:uniform(length(List)),
     lists:nth(Idx, List);
+
 rand_nth(_) ->
     undefined.
-
