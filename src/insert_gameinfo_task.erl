@@ -29,8 +29,10 @@ run(Connection) ->
 
     metrics:create(meter, ?GAMEINFO_RATE),
     metrics:create(histogram, ?GAMEINFO_TIME),
+    metrics:create(histogram, ?GAMEINFO_DOC_COUNT),
     metrics:create(meter, ?MARKETINFO_RATE),
     metrics:create(histogram, ?MARKETINFO_TIME),
+    metrics:create(histogram, ?MARKETINFO_DOC_COUNT),
 
     %% MAIN TASK
     job(Connection).
@@ -58,10 +60,10 @@ generate_data() ->
 
 insert_gameinfo(Connection, GameInfo) ->
     metrics:notify({?GAMEINFO_RATE, 1}),
-    {Result, _} = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo), ?GAMEINFO_TIME),
-    case Result of
+    {Response, _} = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo), ?GAMEINFO_TIME),
+    case Response of
         {false, _} ->
-            error_logger:error_msg("Can't insert GameInfo in module: ~p~n, response: ~p~n", [?MODULE, Result]);
+            error_logger:error_msg("Can't insert GameInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
         {true, #{ <<"writeErrors">> := WriteErrors}} ->
             error_logger:error_msg("Can't insert GameInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
         {true,  #{ <<"n">> := N }}
@@ -73,5 +75,13 @@ insert_marketinfo(_Connection, []) ->
     ok;
 insert_marketinfo(Connection, [Market | Markets]) ->
     metrics:notify({?MARKETINFO_RATE, 1}),
-    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?MARKETINFO, Market), ?MARKETINFO_TIME),
+    Response = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?MARKETINFO, Market), ?MARKETINFO_TIME),
+    case Response of
+        {false, _} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
+        {true, #{ <<"writeErrors">> := WriteErrors}} ->
+            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
+        {true,  #{ <<"n">> := N }}
+            -> metrics:notify({?GAMEINFO_DOC_COUNT, N})
+    end,
     insert_marketinfo(Connection, Markets).
