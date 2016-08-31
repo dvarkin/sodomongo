@@ -7,7 +7,7 @@
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
--define(DOC_COUNT, <<?TASK/binary>>, ".documents_count").
+-define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
 
 %%%===================================================================
 %%% API
@@ -48,9 +48,9 @@ update_odd(Connection, MarketId, SelectionId) ->
     Response = profiler:prof(?TIME, fun() -> mc_worker_api:update(Connection, ?MARKETINFO, Query, Command) end),
     case Response of
         {false, _} ->
-            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
+            error_logger:error_msg("Can't update MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
         {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
+            error_logger:error_msg("Can't update MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
         {true,  #{ <<"n">> := N }}
             -> metrics:notify({?DOC_COUNT, N})
     end,
