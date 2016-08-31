@@ -1,6 +1,5 @@
 -module(delete_gameinfo_task).
 -include("generator.hrl").
--include("profiler.hrl").
 
 -export([run/1]).
 

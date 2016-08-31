@@ -12,8 +12,6 @@
 %% API
 -export([run/1]).
 
--include("profiler.hrl").
-
 -define(TASK_SLEEP, 50).
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
@@ -33,8 +31,9 @@ get_gameinfo_ids(Connection) ->
 
 job(Connection, GameInfoIds) ->
 
-    Result = ?GPROF_TIME_METRIC(
-        begin
+    Result = profiler:prof(
+        ?TIME,
+        fun() ->
             Cursor = mc_worker_api:find(
                 Connection,
                 <<"gameinfo">>,
@@ -43,8 +42,7 @@ job(Connection, GameInfoIds) ->
                 }
             ),
             mc_cursor:rest(Cursor)
-        end,
-        ?TIME),
+        end),
 
     if
         Result == error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
