@@ -11,9 +11,12 @@
 
 -define(GAMEINFO_RATE, <<?GAMEINFO_METRICS/binary, ".rate">>).
 -define(GAMEINFO_TIME, <<?GAMEINFO_METRICS/binary, ".time">>).
+-define(GAMEINFO_DOC_COUNT, <<?GAMEINFO_METRICS/binary, ".documents_count">>).
 
 -define(MARKETINFO_RATE, <<?MARKETINFO_METRICS/binary, ".rate">>).
 -define(MARKETINFO_TIME, <<?MARKETINFO_METRICS/binary, ".time">>).
+-define(MARKETINFO_DOC_COUNT, <<?MARKETINFO_METRICS/binary, ".documents_count">>).
+
 
 
 %%%===================================================================
@@ -55,7 +58,15 @@ generate_data() ->
 
 insert_gameinfo(Connection, GameInfo) ->
     metrics:notify({?GAMEINFO_RATE, 1}),
-    ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo), ?GAMEINFO_TIME).
+    {Result, _} = ?GPROF_TIME_METRIC(mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo), ?GAMEINFO_TIME),
+    case Result of
+        {false, _} ->
+            error_logger:error_msg("Can't insert GameInfo in module: ~p~n, response: ~p~n", [?MODULE, Result]);
+        {true, #{ <<"writeErrors">> := WriteErrors}} ->
+            error_logger:error_msg("Can't insert GameInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
+        {true,  #{ <<"n">> := N }}
+            -> metrics:notify({?GAMEINFO_DOC_COUNT, N})
+    end.
     
 
 insert_marketinfo(_Connection, []) ->

@@ -46,9 +46,9 @@ job(Connection, GameInfoIds) ->
         end,
         ?TIME),
 
-    case Result of
-        error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
-        _     -> metrics:notify({?DOC_COUNT, length(Result)})
+    if
+        Result == error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
+        true  ->  metrics:notify({?DOC_COUNT, length(Result)})
     end,
 
     metrics:notify({?RATE, 1}),
