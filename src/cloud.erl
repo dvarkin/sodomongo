@@ -31,7 +31,19 @@ make_args(Dir) ->
 start() ->
     {ok, Dir} = file:get_cwd(),
     Args = make_args(Dir),
-    error_logger:info_msg("Start slaves with ~p", [Args]),
-    pool:start(sodomongo_slave, Args).
+    %error_logger:info_msg("Start slaves with ~p", [Args]),
+    error_logger:info_msg("Start slaves ...", []),
+    Nodes = pool:start(sodomongo_slave, Args),
+    start(Nodes).
 
+start([]) ->
+    error_logger:info_msg("Fallback to  net_adm:world() ...", []),
+    Nodes = net_adm:world(),
+    fallback(Nodes);
+start(Nodes) ->
+    error_logger:info_msg("Slave nodes: ", [Nodes]).
 
+fallback([]) ->
+    start();
+fallback(Nodes) ->
+    error_logger:info_msg("Slave nodes: ", [Nodes]).

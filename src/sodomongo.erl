@@ -5,10 +5,9 @@
 -include("generator.hrl").
 
 start() ->
-    % cloud:start(),
     start_deps(),
-    ok = application:start(sodomongo).
-%    net_adm:world().
+    ok = application:start(sodomongo),
+    cloud:start().
 
 start_deps() ->
     ok = application:ensure_started(crypto),
