@@ -44,12 +44,12 @@ job(Connection) ->
     job(Connection).
 
 delete_gameinfo(Connection, GameId) ->
-    ?GPROF_TIME_METRIC(mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}), ?GAMEINFO_TIME),
+    profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}) end),
     metrics:notify({?GAMEINFO_RATE, 1}).
 
 delete_marketinfo(_Connection, []) ->
     ok;
 delete_marketinfo(Connection, [MarketId | MarketIds]) ->
-    ?GPROF_TIME_METRIC(mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId}), ?MARKETINFO_TIME),
+    profiler:prof(?MARKETINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId}) end),
     metrics:notify({?MARKETINFO_RATE, 1}),
     delete_gameinfo(Connection, MarketIds).
