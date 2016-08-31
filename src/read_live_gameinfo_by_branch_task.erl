@@ -18,7 +18,7 @@
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
--define(DOC_COUNT, <<?TASK/binary>>, ".documents_count").
+-define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
 
 get_gameinfo_ids(Connection) ->
     Cursor = mc_worker_api:find(
