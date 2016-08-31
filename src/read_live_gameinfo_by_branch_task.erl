@@ -12,7 +12,9 @@
 %% API
 -export([run/1]).
 
--define(TASK_SLEEP, 50).
+-include("generator.hrl").
+
+-define(TASK_SLEEP, 100).
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
@@ -30,16 +32,18 @@ get_gameinfo_ids(Connection) ->
     Result.
 
 job(Connection, GameInfoIds) ->
-
+    Query = #{
+        ?BRANCH_ID => #{ <<"$eq">> => util:rand_nth(GameInfoIds) },
+        ?IS_ACTIVE => true
+    },
+    Collection = <<"gameinfo">>,
     Result = profiler:prof(
         ?TIME,
         fun() ->
             Cursor = mc_worker_api:find(
                 Connection,
-                <<"gameinfo">>,
-                #{
-                    <<"BranchId">> => #{ <<"$eq">> => util:rand_nth(GameInfoIds) }
-                }
+                Collection,
+                Query
             ),
             mc_cursor:rest(Cursor)
         end),

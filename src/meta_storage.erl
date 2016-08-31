@@ -73,8 +73,8 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}]),
-    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}]),
+    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
+    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
     {ok, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab}}.
 
 %%--------------------------------------------------------------------
@@ -102,10 +102,15 @@ handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Ta
 handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Info_Tab} = State) ->
     Selections = get_item_by_id(Market_Info_Tab, MarketId),
     {reply, Selections, State};
-handle_call(get_random_market, _From, #state{selection_tab = Market_Info_Tab} = State) ->
-    MarketList = ets:tab2list(Market_Info_Tab),
-    Selections = util:rand_nth(MarketList),
-    {reply, Selections, State};
+handle_call(get_random_market, From, #state{selection_tab = Market_Info_Tab} = State) ->
+    spawn(
+        fun () ->
+            MarketList = ets:tab2list(Market_Info_Tab),
+            Selections = util:rand_nth(MarketList),
+            gen_server:reply(From, Selections)
+        end
+    ),
+    {noreply, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 

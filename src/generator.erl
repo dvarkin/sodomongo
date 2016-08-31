@@ -21,7 +21,7 @@
 -define(MIN_GENERATION, 1).
 -define(MAX_GENERATION, 1000).
 -define(MIN_BRANCH, 1).
--define(MAX_BRANCH, 500).
+-define(MAX_BRANCH, 30).
 -define(MIN_LEAGUE_ID, 1).
 -define(MAX_LEAGUE_ID, 100000).
 -define(MIN_GROUP_ID, 1).
@@ -79,10 +79,12 @@ new_side() ->
 new_odd(negative) ->
   +5 * rand:uniform(1000);
 new_odd(positive) ->
-  -5 * rand:uniform(4000).
+  -5 * rand:uniform(4000);
+new_odd(zero) ->
+  0.
 
 new_odd() ->
-  new_odd(rand_nth([negative, positive])).
+  new_odd(rand_nth([negative, negative, negative, positive, positive, positive, zero])).
 
 new_game_status() ->
   GameStatuses = #{
