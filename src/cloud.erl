@@ -39,8 +39,10 @@ start([]) ->
     error_logger:info_msg("Start slaves ...", []),
     {ok, Dir} = file:get_cwd(),
     Args = make_args(Dir),
-    Nodes = pool:start(sodomongo_slave, Args),
+    {ok, Hosts} = application:get_env(sodomongo, hosts),
+    Nodes = [slave:start_link(sodomongo_slave, Host, Args) || Host <- Hosts],
     fallback(Nodes);
+
 start(Nodes) ->
     error_logger:info_msg("Slave nodes: ", [Nodes]).
 
