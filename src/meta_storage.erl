@@ -73,8 +73,10 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
-    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
+    Game_Info_Tab = #{},
+    Selection_Tab = #{},
+%    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
+%    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
     {ok, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab}}.
 
 %%--------------------------------------------------------------------
@@ -94,23 +96,23 @@ init([]) ->
   {stop, Reason :: term(), NewState :: #state{}}).
 
 handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
-    GameId = ets:first(Game_Info_Tab),
+    GameId = util:rand_nth(maps:keys(Game_Info_Tab)),
     {reply, GameId, State};
 handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
-    MarketIds = get_item_by_id(Game_Info_Tab, GameId),
+    MarketIds = maps:get(GameId, Game_Info_Tab),
     {reply, MarketIds, State };
 handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Info_Tab} = State) ->
-    Selections = get_item_by_id(Market_Info_Tab, MarketId),
+    Selections = maps:get(MarketId, Market_Info_Tab),
     {reply, Selections, State};
-handle_call(get_random_market, From, #state{selection_tab = Market_Info_Tab} = State) ->
-    spawn(
-        fun () ->
-            MarketList = ets:tab2list(Market_Info_Tab),
-            Selections = util:rand_nth(MarketList),
-            gen_server:reply(From, Selections)
-        end
-    ),
-    {noreply, State};
+handle_call(get_random_market, _From, #state{selection_tab = Market_Info_Tab} = State) ->
+    Reply = case util:rand_nth(maps:keys(Market_Info_Tab)) of
+                undefined ->
+                    undefined;
+                MarketId ->
+                    Selections = maps:get(MarketId, Market_Info_Tab),
+                    {MarketId, Selections}
+            end,
+    {reply, Reply,State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -126,16 +128,18 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast({insert_game, GameId, MarketIds, Selections}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab} = State) ->
-  ets:insert(Game_Info_Tab, {GameId, MarketIds}),
-  [ets:insert(Selection_Tab, Selection) || Selection  <- Selections],
-  {noreply, State};
+    S1 = maps:from_list(Selections),
+    Selection_Tab1 = maps:merge(S1, Selection_Tab),
+    Game_Info_Tab1 = maps:put(GameId, MarketIds, Game_Info_Tab),
+    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1}};
+
 handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
-    MarketIds = get_item_by_id(Game_Info_Tab, GameId),
-    ets:delete(Game_Info_Tab, GameId),
-    [ets:delete(Selection_Tab, MarketId) || MarketId <- MarketIds],
-    {noreply, State};
+    MarketIds = maps:get(GameId, Game_Info_Tab),
+    Game_Info_Tab1 = maps:remove(GameId, Game_Info_Tab),
+    Selection_Tab1 = maps:without(MarketIds, Selection_Tab),
+    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1}};
 handle_cast(_Request, State) ->
-  {noreply, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -188,9 +192,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-
-get_item_by_id(Table, Id) ->
-    case ets:lookup(Table, Id) of
-        [{Id, Item}] ->  Item;
-        _ -> []
-    end.

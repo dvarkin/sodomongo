@@ -55,7 +55,7 @@ job(Connection, GameInfoIds) ->
 
     metrics:notify({?RATE, 1}),
 
-    timer:sleep(?TASK_SLEEP),
+%    timer:sleep(?TASK_SLEEP),
 
     job(Connection, GameInfoIds).
 
