@@ -44,7 +44,7 @@ workers(Workers) ->
 start_job(Task_Module, Time) ->
     gen_server:call(?SERVER, {start_job, Task_Module, Time}).
 
-start_job(Task_Module, Workers, Time) when is_atom(Task_Module) andalso Workers > 0 andalso Time > 1 ->
+start_job(Task_Module, Workers, Time) when is_atom(Task_Module) andalso Workers > 0 andalso Time > 0 ->
     gen_server:call(?SERVER, {start_job, Task_Module, Workers, Time}).
 
 stop_job() ->
