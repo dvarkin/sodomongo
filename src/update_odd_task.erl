@@ -8,6 +8,10 @@
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
 -define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
+-define(OPERATIONS, <<?TASK/binary, ".operations">>).
+-define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
+-define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
+-define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
 
 %%%===================================================================
 %%% API
@@ -25,6 +29,9 @@ run(Connection) ->
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
+    metrics:create(counter, ?OPERATIONS_TOTAL),
+    metrics:create(counter, ?OPERATIONS_ERR),
+    metrics:create(counter, ?OPERATIONS_SUC),
 
     %% Mian task
     job(Connection).
@@ -48,10 +55,20 @@ update_odd(Connection, MarketId, SelectionId) ->
     Response = profiler:prof(?TIME, fun() -> mc_worker_api:update(Connection, ?MARKETINFO, Query, Command) end),
     case Response of
         {false, _} ->
-            error_logger:error_msg("Can't update MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]);
+            begin
+                error_logger:error_msg("Can't update MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]),
+                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
+            end;
         {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            error_logger:error_msg("Can't update MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]);
-        {true,  #{ <<"n">> := N }}
-            -> metrics:notify({?DOC_COUNT, N})
+            begin
+                error_logger:error_msg("Can't update MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]),
+                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
+            end;
+        {true,  #{ <<"n">> := N }} ->
+            begin
+                metrics:notify({?DOC_COUNT, N}),
+                metrics:notify({?OPERATIONS_SUC, {inc, 1}})
+            end
     end,
+    metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
     metrics:notify({?RATE, 1}).
