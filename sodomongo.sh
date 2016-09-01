@@ -11,6 +11,15 @@ else
 fi
 
 erl -name "${NAME}@${IP}" \
+    +P 2097152 \
+    +Q 1048576 \
+    -env ERTS_MAX_PORTS 1048576 \
+    -env ERL_FULLSWEEP_AFTER 1000 \
+    -smp auto \
+    +K true \
+    +sfwi 500 \
+    +A 100 \
+    +zdbbl 102400 \
     -pa deps/bson/ebin \
     -pa deps/mongodb/ebin \
     -pa deps/pbkdf2/ebin/ \
