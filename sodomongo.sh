@@ -32,6 +32,7 @@ erl -name "${NAME}@${IP}" \
     -pa deps/sync/ebin/ \
     -pa ebin/ \
     -boot start_sasl \
+    -kernel error_logger silent \
     -config rel/sys \
     -s ${START_MODULE} \
     ${@:4}
