@@ -28,15 +28,19 @@
 start_link() ->
     gen_server:start_link(?SERVER, ?MODULE, [], []).
 
+-spec create(counter | gauge | meter | histogram, binary() | atom()) -> ok.
 create(Type, Name) ->
     case folsom_metrics:metric_exists(Name) of
         true -> folsom_metrics:delete_metric(Name);
         _ -> ok
     end,
-    gen_server:cast(?SERVER, {create, Type, Name}).
+    gen_server:cast(?SERVER, {create, Type, Name}),
+    ok.
 
+-spec notify({binary() | atom(), any()}) -> ok.
 notify(Arg) ->
-    gen_server:cast(?SERVER, {notify, Arg}).
+    gen_server:cast(?SERVER, {notify, Arg}),
+    ok.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -50,6 +54,10 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({notify, Arg}, State) ->
     folsom_metrics:notify(Arg),
+    {noreply, State};
+
+handle_cast({create, counter, Name}, State) ->
+    folsom_metrics:new_counter(Name),
     {noreply, State};
 
 handle_cast({create, meter, Name}, State) ->
