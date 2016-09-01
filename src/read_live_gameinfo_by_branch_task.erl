@@ -19,6 +19,10 @@
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
 -define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
+-define(OPERATIONS, <<?TASK/binary, ".operations">>).
+-define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
+-define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
+-define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
 
 get_branch_ids(Connection) ->
     Cursor = mc_worker_api:find(
@@ -50,11 +54,20 @@ job(Connection, BranchIDs) ->
             mc_cursor:rest(Cursor)
         end),
     if
-        Result == error -> error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]);
-        true  ->  metrics:notify({?DOC_COUNT, length(Result)})
+        Result == error ->
+            begin
+                error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]),
+                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
+            end;
+        true  ->
+            begin
+                metrics:notify({?DOC_COUNT, length(Result)}),
+                metrics:notify({?OPERATIONS_SUC, {inc, 1}})
+            end
     end,
 
     metrics:notify({?RATE, 1}),
+    metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
 
     timer:sleep(?TASK_SLEEP),
 
@@ -65,4 +78,7 @@ run(Connection) ->
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
+    metrics:create(counter, ?OPERATIONS_TOTAL),
+    metrics:create(counter, ?OPERATIONS_ERR),
+    metrics:create(counter, ?OPERATIONS_SUC),
     job(Connection, BranchIDs).
