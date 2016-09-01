@@ -23,7 +23,7 @@
 -define(MIN_BRANCH, 1).
 -define(MAX_BRANCH, 30).
 -define(MIN_LEAGUE_ID, 1).
--define(MAX_LEAGUE_ID, 100000).
+-define(MAX_LEAGUE_ID, 1000).
 -define(MIN_GROUP_ID, 1).
 -define(MAX_GROUP_ID, 100000).
 -define(MIN_REGION_ID, 1).

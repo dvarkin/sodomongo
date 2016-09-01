@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 31. Aug 2016 18:33
 %%%-------------------------------------------------------------------
--module(query_branches_with_active_games).
+-module(read_branches_with_active_games_task).
 -author("eugeny").
 
 %% API
