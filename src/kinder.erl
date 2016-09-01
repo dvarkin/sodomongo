@@ -178,6 +178,10 @@ terminate(Reason, _StateName, _StateData) ->
 code_change(_OldVsn, StateName, StateData, _Extra) ->
 	{ok, StateName, StateData}.
 
+
+%%%% INTERNALFUNCTIONS $$$$$
+
+%% @private %%
 select_host(Hosts) ->
     Index = rand:uniform(length(Hosts)),
     lists:nth(Index, Hosts).

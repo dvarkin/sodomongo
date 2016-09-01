@@ -69,7 +69,7 @@ job(Connection, BranchIDs) ->
     metrics:notify({?RATE, 1}),
     metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
 
-    timer:sleep(?TASK_SLEEP),
+%    timer:sleep(?TASK_SLEEP),
 
     job(Connection, BranchIDs).
 
