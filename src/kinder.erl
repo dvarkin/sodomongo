@@ -162,8 +162,8 @@ handle_info({'EXIT', Pid, killed}, _StateName, #state{task_pid = Pid} = State) -
 %% termination of task process
 handle_info({'EXIT', OldPid, ?OPERATION_TIMED_OUT}, _StateName, #state{task_time = RTime, task_module = Task_Module, connection = Connection, task_pid = OldPid} = State) ->
     error_logger:error_msg("Operation timed out, module: ~p", [Task_Module]),
-    metrics:notify({<<Task_Module/binary, "_metrics.operations.err">>, {inc, 1}}),
-    metrics:notify({<<Task_Module/binary, "_metrics.operations.total">>, {inc, 1}}),
+    metrics:notify({<<(atom_to_binary(Task_Module, utf8))/binary, "_metrics.operations.err">>, {inc, 1}}),
+    metrics:notify({<<(atom_to_binary(Task_Module, utf8))/binary, "_metrics.operations.total">>, {inc, 1}}),
     P = start_job(Connection, Task_Module, RTime),
     {next_state, 'INPROGRESS', State#state{task_pid = P}};
 
