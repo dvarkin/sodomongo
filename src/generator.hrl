@@ -20,6 +20,7 @@
 -define(TEAM_SWAP, <<"TeamSwap">>).
 -define(MARKET_BETS, <<"MarketBets">>).
 -define(SELECTIONS, <<"Selections">>).
+-define(TYPE, <<"Type">>).
 
 %%% Bet Statistics %%%
 -define(TOTAL_BETS, <<"TotalBets">>).
