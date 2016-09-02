@@ -4,13 +4,15 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 01. Sep 2016 16:31
+%%% Created : 02. Sep 2016 10:30
 %%%-------------------------------------------------------------------
--module(read_top_x_event_starting_soon_task).
+-module(read_top_events_by_turnover).
 -author("eugeny").
 
+-include("generator.hrl").
+
 %% API
--export([run/1, query/1]).
+-export([run/1, query/2]).
 
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
@@ -23,39 +25,30 @@
 
 -define(QUERY_LIMIT, 10).
 -define(TASK_SLEEP, 1).
--define(HOUR_IN_SEC, 60 * 60).
 
-monogo_datetime_with_offset(Timestamp, OffsetSet) ->
-    SecInMega = 1000000,
-    {Mega, Sec, _} = Timestamp,
-    TotalSec = Mega * SecInMega + Sec,
-    NewSec = TotalSec + OffsetSet,
-    {NewSec div SecInMega, NewSec rem SecInMega, 0}.
+get_branch_ids(Connection) ->
+    Cursor = mc_worker_api:find(
+        Connection,
+        <<"gameinfo">>,
+        #{},
+        #{projector => {?BRANCH_ID, true}}
+    ),
 
-query(Connection) ->
-    MaxStartDate = monogo_datetime_with_offset(os:timestamp(), ?HOUR_IN_SEC),
+    Result = mc_cursor:rest(Cursor),
+    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
+    mc_cursor:close(Cursor),
+    sets:to_list(sets:from_list(BranchIDs)).
 
+query(Connection, BranchId) ->
     Command = {
         <<"aggregate">>, <<"gameinfo">>,
         <<"pipeline">>, [
-            {
-                <<"$match">>, {
-                    <<"StartDate">>, {
-                        <<"$lt">>, MaxStartDate
-                    }
-                }
-            },
-            {
-                <<"$sort">>, {
-                    <<"StartDate">>, 1
-                }
-            },
-            {
-                <<"$limit">>, ?QUERY_LIMIT
-            }
+            {<<"$match">>, {<<"BranchID">>, BranchId}},
+            {<<"$sort">>, {<<"GameBets.TotalDepositGBP">>, -1}},
+            {<<"$limit">>, ?QUERY_LIMIT}
         ]
     },
-    {_, Data} = Response = profiler:prof(?TIME, fun() -> mc_worker_api:command(Connection, Command) end),
+    {_, Result} = Response = profiler:prof(?TIME, fun() -> mc_worker_api:command(Connection, Command) end),
 
     case Response of
         {false, _} ->
@@ -63,9 +56,9 @@ query(Connection) ->
                 error_logger:error_msg("Can't read in module: ~p~n, response: ~p~n", [?MODULE, Response]),
                 metrics:notify({?OPERATIONS_ERR, {inc, 1}})
             end;
-        {true,  #{ <<"result">> := Result }} ->
+        {true,  #{ <<"result">> := Res}} ->
             begin
-                metrics:notify({?DOC_COUNT, length(Result)}),
+                metrics:notify({?DOC_COUNT, length(Res)}),
                 metrics:notify({?OPERATIONS_SUC, {inc, 1}})
             end
     end,
@@ -75,14 +68,15 @@ query(Connection) ->
 
     timer:sleep(?TASK_SLEEP),
 
-    Data.
+    Result.
 
-job(Connection) ->
-    query(Connection),
-    job(Connection).
+job(Connection, BranchId) ->
+    query(Connection, BranchId),
+    job(Connection, BranchId).
 
 run(Connection) ->
+    BranchIds = get_branch_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
-    job(Connection).
+    job(Connection, generator:rand_nth(BranchIds)).
