@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/4, start_test/6, init_test/0]).
+-export([start/0, start_deps/0, start_test/5, start_test/7, init_test/1]).
 
 -include("generator.hrl").
 
@@ -23,8 +23,8 @@ start_deps() ->
     ok = application:ensure_started(syntax_tools).
 
 
-init_test() ->
-    {ok, ConnectionArgs} = application:get_env(sodomongo, mongo_connection),
+init_test(Db) ->
+    {ok, ConnectionArgs} = lists:keyreplace(database, 1, application:get_env(sodomongo, mongo_connection),{database, Db}),
     AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),
     {ok, AdminConnection} = kinder:connect_to_mongo(AdminConnectionArgs),
     {ok, DbConnection} = kinder:connect_to_mongo(ConnectionArgs),
@@ -57,14 +57,14 @@ init_test() ->
     }).
 
 
-start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
-    init_test(),
+start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
+    init_test(Db),
     kinder_metrics:create_jobs([insert_gameinfo_task, update_odd_task, delete_gameinfo_task, ReadTaskModule]),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
     hugin:start_job(update_odd_task, UpdateWorkers, Time),
     hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
     hugin:start_job(ReadTaskModule, ReadWorkers, Time).
 
-start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
-    start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
+start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
+    start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
 
