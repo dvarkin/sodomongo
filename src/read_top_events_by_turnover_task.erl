@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 02. Sep 2016 10:30
 %%%-------------------------------------------------------------------
--module(read_top_events_by_turnover).
+-module(read_top_events_by_turnover_task).
 -author("eugeny").
 
 -include("generator.hrl").
