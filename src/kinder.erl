@@ -26,6 +26,8 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
+-define(OPERATION_TIMED_OUT, {{bad_query, #{<<"code">> := 50}}, _}).
+
 -record(state, {
     connection :: pid() | undefined,
     connection_args :: list(),
@@ -157,7 +159,12 @@ handle_info({'EXIT', Pid, killed}, _StateName, #state{task_pid = Pid} = State) -
     hugin:worker_monitor(self(), undefined,'WAIT_JOB'),
     {next_state, 'WAIT_JOB', State#state{task_pid = undefined, task_module = undefined, task_time = 1}};
 
-%% termination of task process 
+%% termination of task process
+handle_info({'EXIT', OldPid, ?OPERATION_TIMED_OUT}, _StateName, #state{task_time = RTime, task_module = Task_Module, connection = Connection, task_pid = OldPid} = State) ->
+    error_logger:error_msg("Operation timed out, module: ~p", [Task_Module]),
+    P = start_job(Connection, Task_Module, RTime),
+    {next_state, 'INPROGRESS', State#state{task_pid = P}};
+
 handle_info({'EXIT', Pid, Error}, _StateName, #state{task_pid = Pid} = State) ->
     error_logger:error_msg("Task terminate with: ~p", [Error]),
     hugin:worker_monitor(self(), undefined,'WAIT_JOB'),
