@@ -28,6 +28,7 @@ run(Connection) ->
     
     %% init metrics
     metrics:create(meter, ?RATE),
+    metrics:create(histogram, ?DEV_GEN_TIME),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
     metrics:create(counter, ?OPERATIONS_TOTAL),
