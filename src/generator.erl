@@ -151,7 +151,8 @@ new_market_info() ->
     ?START_DATE => os:timestamp(),
     ?TEAM_SWAP => rand_bool(),
     ?MARKET_BETS => new_bet_statistics(),
-    ?SELECTIONS => new_selections(10,20) 
+    ?SELECTIONS => new_selections(10,20),
+    ?IS_ACTIVE => rand_bool()
   }.
 
 new_market_info(leagueId, LeagueId) ->
