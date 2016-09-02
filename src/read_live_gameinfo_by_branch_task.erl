@@ -38,23 +38,22 @@ get_branch_ids(Connection) ->
     sets:to_list(sets:from_list(BranchIDs)).
 
 job(Connection, BranchIDs) ->
-    %_Query = #{
-    %    ?BRANCH_ID => #{ <<"$eq">> => util:rand_nth(BranchIDs) },
-    %    ?IS_ACTIVE => true
-    %},
-    %_Collection = <<"gameinfo">>,
+    Query = #{
+        ?BRANCH_ID => #{ <<"$eq">> => util:rand_nth(BranchIDs) },
+        ?IS_ACTIVE => true
+    },
+    Collection = <<"gameinfo">>,
     Result = profiler:prof(
         ?TIME,
         fun() ->
-            %Cursor = mc_worker_api:find(
-            %    Connection,
-            %    Collection,
-            %    Query
-            %),
-            %Data = mc_cursor:rest(Cursor),
-            %mc_cursor:close(Cursor),
-            %Data
-        [ok]
+            Cursor = mc_worker_api:find(
+                Connection,
+                Collection,
+                Query
+            ),
+            Data = mc_cursor:rest(Cursor),
+            mc_cursor:close(Cursor),
+            Data
         end),
     if
         Result == error ->
