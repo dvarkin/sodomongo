@@ -146,8 +146,8 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
 handle_info({'EXIT', Connection, Reason}, _StateName, #state{connection = Connection} = State) ->
     error_logger:error_msg("Connection lost: ~p",[Reason]),
     hugin:worker_monitor(self(), undefined,'WAIT_CONNECTION'),
-    erlang:send_after(?CONNECTION_TIMEOUT, self(), connect),
-    {next_state, 'WAIT_CONNECTION', State#state{connection = undefined, task_pid = undefined, task_module = undefined, task_time = 1}};
+    self() ! connect,
+    {next_state, 'WAIT_CONNECTION', State#state{connection = undefined, task_pid = undefined}};
 
 %% tcp abnormal termination
 handle_info({tcp_closed, _Pid}, _StateName, #state{connection = Connection} = State) ->
