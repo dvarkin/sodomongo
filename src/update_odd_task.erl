@@ -12,7 +12,7 @@
 -define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
 -define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
 -define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
--define(DEV_GEN_TIME, <<?TASK/binay, ".dev.gen_time">>).
+-define(DEV_GEN_TIME, <<?TASK/binary, ".dev.gen_time">>).
 
 %%%===================================================================
 %%% API
