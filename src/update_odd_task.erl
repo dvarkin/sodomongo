@@ -12,6 +12,7 @@
 -define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
 -define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
 -define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
+-define(DEV_GEN_TIME, <<?TASK/binay, ".dev.gen_time">>).
 
 %%%===================================================================
 %%% API
@@ -51,7 +52,7 @@ job(Connection) ->
 
 update_odd(Connection, MarketId, SelectionId) ->
     Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
-    Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
+    Command = profiler:prof(?DEV_GEN_TIME, fun () -> #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}} end),
     Response = profiler:prof(?TIME, fun() -> mc_worker_api:update(Connection, ?MARKETINFO, Query, Command) end),
     case Response of
         {false, _} ->
