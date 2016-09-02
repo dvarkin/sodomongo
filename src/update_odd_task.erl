@@ -53,8 +53,11 @@ job(Connection) ->
 
 update_odd(Connection, MarketId, SelectionId) ->
     Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
-    Command = profiler:prof(?DEV_GEN_TIME, fun () -> #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}} end),
-    Response = profiler:prof(?TIME, fun() -> mc_worker_api:update(Connection, ?MARKETINFO, Query, Command) end),
+    Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
+    Response = profiler:prof(?TIME,
+        fun() ->
+            mc_worker_api:update(Connection, ?MARKETINFO, Query, Command)
+        end),
     case Response of
         {false, _} ->
             begin

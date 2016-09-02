@@ -75,7 +75,10 @@ generate_data() ->
 insert_gameinfo(Connection, GameInfo) ->
     metrics:notify({?GAMEINFO_RATE, 1}),
     metrics:notify({?GAMEINFO_OPERATIONS_TOTAL, {inc, 1}}),
-    {Response, _} = profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo) end),
+    {Response, _} = profiler:prof(?GAMEINFO_TIME,
+        fun() ->
+            mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo)
+        end),
     case Response of
         {false, _} ->
             begin

@@ -11,7 +11,7 @@
 -export([start/0]).
 
 make_args(Dir) ->
-    _TunningArgs = " +P 2097152 +Q 1048576 -env ERTS_MAX_PORTS 1048576 -env ERL_FULLSWEEP_AFTER 1000 -smp auto +K true +sfwi 500 +A 10 +zdbbl 102400",
+    %TunningArgs = " +P 2097152 +Q 1048576 -env ERTS_MAX_PORTS 1048576 -env ERL_FULLSWEEP_AFTER 1000 -smp auto +K true +sfwi 500 +A 100 +zdbbl 102400",
 
     Deps = [
         "/ebin",

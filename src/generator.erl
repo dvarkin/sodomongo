@@ -34,6 +34,8 @@
 -define(MAX_TOTAL_BETS, 1000).
 -define(MIN_TOTAL_DEPOSIT_GBP, 10).
 -define(MAX_TOTAL_DEPOSIT_GBP, 100000).
+-define(MIN_TYPE, 1).
+-define(MAX_TYPE, 200).
 
 -define(ONE_DAY_IN_SEC, 24 * 60 * 60).
 -define(MAX_START_DATE_OFFSET, ?ONE_DAY_IN_SEC).
@@ -151,7 +153,9 @@ new_market_info() ->
     ?START_DATE => os:timestamp(),
     ?TEAM_SWAP => rand_bool(),
     ?MARKET_BETS => new_bet_statistics(),
-    ?SELECTIONS => new_selections(10,20) 
+    ?SELECTIONS => new_selections(10,20),
+    ?IS_ACTIVE => rand_bool(),
+    ?TYPE => rand_int(?MIN_TYPE, ?MAX_TYPE)
   }.
 
 new_market_info(leagueId, LeagueId) ->
