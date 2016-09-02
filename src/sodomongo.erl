@@ -24,7 +24,8 @@ start_deps() ->
 
 
 init_test(Db) ->
-    {ok, ConnectionArgs} = lists:keyreplace(database, 1, application:get_env(sodomongo, mongo_connection),{database, Db}),
+    {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
+    ConnectionArgs = lists:keyreplace(database, 1, RawArgs,{database, Db}),
     AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),
     {ok, AdminConnection} = kinder:connect_to_mongo(AdminConnectionArgs),
     {ok, DbConnection} = kinder:connect_to_mongo(ConnectionArgs),
