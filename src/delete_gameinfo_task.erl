@@ -59,8 +59,11 @@ job(Connection) ->
 
     job(Connection).
 
-delete_gameinfo(Connection, GameId) ->
-    Response = profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}) end),
+delete_gameinfo(_Connection, _GameId) ->
+    Response = profiler:prof(?GAMEINFO_TIME, fun() ->
+        {true, ok}
+%            mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId})
+                                             end),
     case Response of
         {false, _} ->
             begin
@@ -83,8 +86,11 @@ delete_gameinfo(Connection, GameId) ->
 
 delete_marketinfo(_Connection, []) ->
     ok;
-delete_marketinfo(Connection, [MarketId | MarketIds]) ->
-    Response = profiler:prof(?MARKETINFO_TIME, fun() -> mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId}) end),
+delete_marketinfo(Connection, [_MarketId | MarketIds]) ->
+    Response = profiler:prof(?MARKETINFO_TIME, fun() ->
+        %mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId})
+        {true, [ok]}
+        end),
     case Response of
         {false, _} ->
             begin

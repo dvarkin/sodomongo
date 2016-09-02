@@ -72,10 +72,13 @@ generate_data() ->
 %    SelectionIds = [Id || #{?ID := Id} <- Selections],
     {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
 
-insert_gameinfo(Connection, GameInfo) ->
+insert_gameinfo(_Connection, _GameInfo) ->
     metrics:notify({?GAMEINFO_RATE, 1}),
     metrics:notify({?GAMEINFO_OPERATIONS_TOTAL, {inc, 1}}),
-    {Response, _} = profiler:prof(?GAMEINFO_TIME, fun() -> mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo) end),
+    {Response, _} = profiler:prof(?GAMEINFO_TIME, fun() ->
+        %mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo)
+        {true, #{<<"n">> => 1}}
+        end),
     case Response of
         {false, _} ->
             begin

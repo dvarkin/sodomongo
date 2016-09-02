@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 01. Sep 2016 15:43
 %%%-------------------------------------------------------------------
--module(read_leagues_by_branch_with_number_of_games_in_active_state).
+-module(read_leagues_by_branch_with_number_of_games_in_active_state_task).
 -author("serhiinechyporhuk").
 
 %% API
