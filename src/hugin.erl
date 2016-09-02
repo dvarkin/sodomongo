@@ -64,6 +64,7 @@ init([]) ->
     metrics:create(gauge, <<"worker.active">>),
     metrics:create(gauge, <<"worker.awaiting">>),
     metrics:create(counter, <<"reconnections.total">>),
+    metrics:create(counter, <<"timedout.total">>),
     timer:send_interval(10000, send_metrics),
 
     kinder_metrics:init(),
