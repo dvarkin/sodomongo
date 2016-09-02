@@ -145,6 +145,7 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
 
 handle_info({'EXIT', Connection, Reason}, _StateName, #state{connection = Connection} = State) ->
     error_logger:error_msg("Connection lost: ~p",[Reason]),
+    metrics:notify({<<"recconections.total">>, {inc, 1}}),
     hugin:worker_monitor(self(), undefined,'WAIT_CONNECTION'),
     self() ! connect,
     {next_state, 'WAIT_CONNECTION', State#state{connection = undefined, task_pid = undefined}};
