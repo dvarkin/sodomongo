@@ -51,7 +51,9 @@ job(Connection, BranchIDs) ->
                 Collection,
                 Query
             ),
-            mc_cursor:rest(Cursor)
+            Data = mc_cursor:rest(Cursor),
+            mc_cursor:close(Cursor),
+            Data
         end),
     if
         Result == error ->

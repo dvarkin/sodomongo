@@ -35,6 +35,9 @@
 -define(MIN_TOTAL_DEPOSIT_GBP, 10).
 -define(MAX_TOTAL_DEPOSIT_GBP, 100000).
 
+-define(ONE_DAY_IN_SEC, 24 * 60 * 60).
+-define(MAX_START_DATE_OFFSET, ?ONE_DAY_IN_SEC).
+
 %%% Helpers %%%
 rand_int(From, To) ->
   rand:uniform(To - From) + From.
@@ -128,6 +131,14 @@ new_selection_info(Extras) ->
 new_selections(From, To) ->
     [new_selection_info(#{?GROUP_ID => 10}) || _ <- lists:seq(1, rand_int(From, To))].
 
+new_start_date(MaxOffset) ->
+  SecInMega = 1000000,
+  {Mega, Sec, Ms} = os:timestamp(),
+  TotalSec = Mega * SecInMega + Sec,
+  Offset = rand_int(1, MaxOffset),
+  StartTimeSec = TotalSec + Offset,
+  {StartTimeSec div SecInMega, StartTimeSec rem SecInMega, Ms}.
+
 new_market_info() ->
   #{
     ?ID => new_market_id(),
@@ -155,7 +166,7 @@ new_game_info() ->
     ?BRANCH_ID => rand_int(?MIN_BRANCH, ?MAX_BRANCH),
     ?LEAGUE_ID => rand_int(?MIN_LEAGUE_ID, ?MAX_LEAGUE_ID),
     ?REGION_ID => rand_int(?MIN_REGION_ID, ?MAX_REGION_ID),
-    ?START_DATE => os:timestamp(),
+    ?START_DATE => new_start_date(?MAX_START_DATE_OFFSET),
     ?IS_ACTIVE => rand_bool(),
     ?IS_LIVE => rand_bool(),
     ?GAME_BETS => new_bet_statistics(),

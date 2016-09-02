@@ -25,7 +25,9 @@ job(Connection) ->
                 Collection,
                 Query
             ),
-            mc_cursor:rest(Cursor)
+            Data = mc_cursor:rest(Cursor),
+            mc_cursor:close(Data),
+            Data
         end),
 
     if

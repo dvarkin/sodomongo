@@ -1,18 +1,20 @@
 %%%-------------------------------------------------------------------
-%%% @author eugeny
+%%% @author serhiinechyporhuk
 %%% @copyright (C) 2016, <COMPANY>
 %%% @doc
 %%%
 %%% @end
-%%% Created : 31. Aug 2016 18:33
+%%% Created : 01. Sep 2016 15:43
 %%%-------------------------------------------------------------------
--module(read_branches_with_active_games_task).
--author("eugeny").
+-module(read_leagues_by_branch_with_number_of_games_in_active_state).
+-author("serhiinechyporhuk").
 
 %% API
 -export([run/1]).
 
--define(TASK_SLEEP, 1).
+-include("generator.hrl").
+
+-define(TASK_SLEEP, 100).
 -define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
 -define(RATE, <<?TASK/binary, ".rate">>).
 -define(TIME, <<?TASK/binary, ".time">>).
@@ -22,34 +24,43 @@
 -define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
 -define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
 
-job(Connection) ->
+get_branch_ids(Connection) ->
+    Cursor = mc_worker_api:find(
+        Connection,
+        <<"gameinfo">>,
+        #{},
+        #{projector => {?BRANCH_ID, true}}
+    ),
+
+    Result = mc_cursor:rest(Cursor),
+    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
+    mc_cursor:close(Cursor),
+    sets:to_list(sets:from_list(BranchIDs)).
+
+job(Connection, BranchIDs) ->
+    BranchID = util:rand_nth(BranchIDs),
+    IsLive = util:rand_nth([true, false]),
     Command = {
         <<"aggregate">>, <<"gameinfo">>,
         <<"pipeline">>, [
-            #{
-                <<"$match">> => #{
-                    <<"IsActive">> => true
+            {
+                <<"$match">>,
+                {
+                    <<"BranchID">>, BranchID,
+                    <<"IsLive">>, IsLive,
+                    <<"IsActive">>, true
                 }
             },
-            #{
-                <<"$group">> => #{
-                    <<"_id">> => <<"$BranchID">>,
-                    <<"Events">> => #{
-                        <<"$sum">> => 1
-                    }
-                }
-            },
-            #{
-                <<"$project">> => #{
-                    <<"_id">> => 0,
-                    <<"BranchID">> => "$_id",
-                    <<"Events">> => 1
+            {
+                <<"$group">>,
+                {
+                    <<"_id">>, <<"$LeagueID">>,
+                    <<"ActiveEvents">>, {<<"$sum">>, 1}
                 }
             }
         ]
     },
     Response = profiler:prof(?TIME, fun() -> mc_worker_api:command(Connection, Command) end),
-
     case Response of
         {false, _} ->
             begin
@@ -65,14 +76,17 @@ job(Connection) ->
 
     metrics:notify({?RATE, 1}),
     metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
-    timer:sleep(?TASK_SLEEP),
-    job(Connection).
+
+%    timer:sleep(?TASK_SLEEP),
+
+    job(Connection, BranchIDs).
 
 run(Connection) ->
+    BranchIDs = get_branch_ids(Connection),
     metrics:create(meter, ?RATE),
     metrics:create(histogram, ?TIME),
     metrics:create(histogram, ?DOC_COUNT),
     metrics:create(counter, ?OPERATIONS_TOTAL),
     metrics:create(counter, ?OPERATIONS_ERR),
     metrics:create(counter, ?OPERATIONS_SUC),
-    job(Connection).
+    job(Connection, BranchIDs).
