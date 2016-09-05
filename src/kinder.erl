@@ -145,9 +145,10 @@ handle_info(connect, 'WAIT_CONNECTION', #state{connection_args = ConnectionArgs,
 
 handle_info({'EXIT', Connection, Reason}, _StateName, #state{connection = Connection} = State) ->
     error_logger:error_msg("Connection lost: ~p",[Reason]),
+    metrics:notify({<<"reconnections.total">>, {inc, 1}}),
     hugin:worker_monitor(self(), undefined,'WAIT_CONNECTION'),
-    erlang:send_after(?CONNECTION_TIMEOUT, self(), connect),
-    {next_state, 'WAIT_CONNECTION', State#state{connection = undefined, task_pid = undefined, task_module = undefined, task_time = 1}};
+    self() ! connect,
+    {next_state, 'WAIT_CONNECTION', State#state{connection = undefined, task_pid = undefined}};
 
 %% tcp abnormal termination
 handle_info({tcp_closed, _Pid}, _StateName, #state{connection = Connection} = State) ->
@@ -162,6 +163,7 @@ handle_info({'EXIT', Pid, killed}, _StateName, #state{task_pid = Pid} = State) -
 %% termination of task process
 handle_info({'EXIT', OldPid, ?OPERATION_TIMED_OUT}, _StateName, #state{task_time = RTime, task_module = Task_Module, connection = Connection, task_pid = OldPid} = State) ->
     error_logger:error_msg("Operation timed out, module: ~p", [Task_Module]),
+    metrics:notify({<<"timedout.total">>, {inc, 1}}),
     metrics:notify({<<(atom_to_binary(Task_Module, utf8))/binary, "_metrics.operations.err">>, {inc, 1}}),
     metrics:notify({<<(atom_to_binary(Task_Module, utf8))/binary, "_metrics.operations.total">>, {inc, 1}}),
     P = start_job(Connection, Task_Module, RTime),
