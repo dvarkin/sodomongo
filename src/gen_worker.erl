@@ -110,7 +110,7 @@ make_metrics_titles(Module) when is_atom(Module) ->
     Total = <<O/binary, ".total">>,
     Err = <<O/binary, ".err">>,
     Suc = <<O/binary, ".suc">>,
-    #{rate => {rate, Rate}, 
+    #{rate => {meter, Rate}, 
       time => {histogram, Time},
       docs_count => {histogram, DocsCount},
       total => {counter, Total},
