@@ -10,12 +10,17 @@
 
 -behaviour(gen_server).
 
--export([start_link/3, start_link/4, init_metrics/1]).
+-export([start_link/3, start_link/4, init_metrics/1, start/4]).
+
+-type metrics() :: #{ doc_count => pos_integer(),
+                      error_reason => any(),
+                      status => success | error }.
+-type action_closure() :: fun( () -> metrics() ).
 
 -callback init_metrics() -> ok.
 -callback init(Args :: list()) -> term().
 -callback job(Connection :: pid(), State :: term()) ->
-    {profile, ProfileClosure :: fun(), State :: term()} | {ok, State :: term()}.
+    {ok, ActionClosure :: action_closure(), State :: term()}.
 -callback start(Args :: list(), Time :: pos_integer(), Sleep :: pos_integer() | undefined) ->
     {ok, pid()}.
 
@@ -37,13 +42,17 @@
                 module_state :: term()
                }).
 
+start(Module, ConnectionArgs, Time, Sleep) ->
+    start_link(Module, ConnectionArgs, Time, Sleep).
+
 start_link(Module, Args, Time) ->
     start_link(Module, Args, Time, undefined).
 start_link(Module, Args, Time, Sleep) ->
     gen_server:start_link(?MODULE, [Module, Args, Time, Sleep], []).
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
-    self() ! connect, 
+    self() ! connect,
+    error_logger:info_msg("Init: ~p~n", [Args]),
     timer:exit_after(Time, normal),
     Metrics = make_metrics_titles(Module),
     hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
@@ -63,6 +72,7 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} = State) ->
+    error_logger:info_msg("Connect: ~p~n", [State]),
     {ok, Connection} = connect_to_mongo(ConnectionArgs),
     self() ! tick, 
     hugin:worker_monitor(self(), Module, 'INPROGRESS'),
@@ -95,6 +105,7 @@ select_host(Hosts) ->
     lists:nth(Index, Hosts).
 
 connect_to_mongo(ConnectionArgs) ->
+    error_logger:info_msg("Con2Mon: ~p~n", [ConnectionArgs]),
     Hosts = proplists:get_value(host, ConnectionArgs),
     Host = select_host(Hosts),
     WithOneHost = lists:keyreplace(host, 1, ConnectionArgs, {host, Host}),
@@ -130,10 +141,8 @@ start_metrics([{MetricType, Metric} | Metrics] ) ->
 start_metrics([]) ->
     ok.
 
-parse_response({profile, ProfileAction, Module_State_New}, Module, Metrics) ->
+parse_response({ok, ProfileAction, Module_State_New}, Module, Metrics) ->
     profile_job(Module, ProfileAction, Metrics),
-    Module_State_New;
-parse_response({ok, Module_State_New}, _Module, _Metrics) -> 
     Module_State_New.
 
 
@@ -160,24 +169,33 @@ profile_job(Module, Action,
                ) ->
     metrics:notify({Rate, 1}),
     metrics:notify({Total, {inc, 1}}),
-    {Response, _} = profiler:prof(Time,
-                                  fun() ->
-                                          Action
-                                  end),
+    Response = profiler:prof(Time, Action),
     case Response of
-        {false, _} ->
-            begin
-                error_logger:error_msg("Can't make query from module: ~p~n, response: ~p~n", [Module, Response]),
-                metrics:notify({Error, {inc, 1}})
-            end;
-        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            begin
-                error_logger:error_msg("Can't make query from module: ~p~n, error: ~p~n", [Module, WriteErrors]),
-                metrics:notify({Error, {inc, 1}})
-            end;
-        {true,  #{ <<"n">> := N }} ->
+        #{status := success, doc_count := N} ->
             begin
                 metrics:notify({DocsCount, N}),
                 metrics:notify({Success, {inc, 1}})
+            end;
+        #{status := error, error_reason := Reason} ->
+            begin
+                error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
+                metrics:notify({Error, {inc, 1}})
             end
     end.
+%%    case Response of
+%%        {false, _} ->
+%%            begin
+%%                error_logger:error_msg("Can't make query from module: ~p~n, response: ~p~n", [Module, Response]),
+%%                metrics:notify({Error, {inc, 1}})
+%%            end;
+%%        {true, #{ <<"writeErrors">> := WriteErrors}} ->
+%%            begin
+%%                error_logger:error_msg("Can't make query from module: ~p~n, error: ~p~n", [Module, WriteErrors]),
+%%                metrics:notify({Error, {inc, 1}})
+%%            end;
+%%        {true,  #{ <<"n">> := N }} ->
+%%            begin
+%%                metrics:notify({DocsCount, N}),
+%%                metrics:notify({Success, {inc, 1}})
+%%            end
+%%    end.

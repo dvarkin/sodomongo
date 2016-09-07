@@ -26,8 +26,9 @@ init(_Init_Args) ->
     {ok, undefined_state}.
 
 job(Connection, State) ->
+    error_logger:info_msg("job: ~p~n", [State]),
     SomeInfo = 1,
-    {profile, some_query(Connection, SomeInfo), State}.
+    {ok, some_query(Connection, SomeInfo), State}.
 
 %%%===================================================================
 %%% Internal functions
@@ -35,6 +36,7 @@ job(Connection, State) ->
 
 some_query(Connection, Info) ->
     fun() ->
-            mc_worker_api:find_one(Connection, <<"odds">>, {<<"_id">>, Info})
+        mc_worker_api:find_one(Connection, <<"odds">>, {<<"_id">>, Info}),
+        #{doc_count => 1, status => success}
 %            mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo)
     end.

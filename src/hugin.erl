@@ -8,7 +8,7 @@
 
 -export([worker_monitor/3, worker_state/3, worker_terminate/1]).
 
--export([workers/0, workers/1, start_job/2, start_job/3, stop_job/0]).
+-export([workers/0, workers/1, start_job/2, start_job/4, stop_job/0]).
 
 %% gen_server.
 -export([init/1]).
@@ -44,8 +44,8 @@ workers(Workers) ->
 start_job(Task_Module, Time) ->
     gen_server:call(?SERVER, {start_job, Task_Module, Time}).
 
-start_job(Task_Module, Workers, Time) when is_atom(Task_Module) andalso Workers > 0 andalso Time > 0 ->
-    gen_server:call(?SERVER, {start_job, Task_Module, Workers, Time}).
+start_job(Task_Module, Workers, Time, Sleep) when is_atom(Task_Module) andalso Workers > 0 andalso Time > 0 ->
+    gen_server:call(?SERVER, {start_job, Task_Module, Workers, Time, Sleep}).
 
 stop_job() ->
     gen_server:call(?SERVER, stop_job).
@@ -81,14 +81,8 @@ handle_call({workers, WorkersNumber}, _From, #state{mongo_connection = Connectio
     start_workers(ConnectionArgs, WorkersNumber),
     {reply, WorkersNumber, State};
 
-handle_call({start_job, Task_Module, Workers_Number, Time}, _From, #state{mongo_connection = ConnectionArgs, workers = Workers} = State) ->
-    Awaiting = workers_by_state(Workers, 'WAIT_JOB'),
-    error_logger:info_msg("AWAITING workers ~p", [maps:size(Awaiting)]),
-    start_task(#{mongo_connection => ConnectionArgs, 
-		 task_module => Task_Module,
-		 workers_number => Workers_Number, 
-		 task_ime => Time, 
-		 workers_await => Awaiting}),
+handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_connection = ConnectionArgs} = State) ->
+    [Task_Module:start(ConnectionArgs, Time, Sleep) || _ <- lists:seq(1, WorkersNum)],
     {reply, ok, State};
 
 handle_call({start_job, Task_Module, Time}, _From, #state{workers = Workers} = State) ->
@@ -153,30 +147,5 @@ start_workers(ConnectionArgs, WorkersNumber, Task_Module, Time) when WorkersNumb
 workers_by_state(Workers, State) ->
     Pred = fun(_Pid, #{state := WorkerState}) -> WorkerState =:= State end,
     maps:filter(Pred, Workers).
-
-start_task(#{mongo_connection := ConnectionArgs, 
-	     task_module := Task_Module,
-	     workers_number := Workers_Number, 
-	     task_ime := Time, 
-	     workers_await := Await,
-	     workers_await_size := Workers_Await_Job}) when Workers_Number - Workers_Await_Job > 0 ->
-    %% Start on existing workers
-
-    start_workers(ConnectionArgs, Workers_Number - Workers_Await_Job, Task_Module, Time),
-    [kinder:job(P, Task_Module, Time) || P <- maps:keys(Await)];
-
-start_task(#{mongo_connection := _ConnectionArgs, 
-	     task_module := Task_Module,
-	     workers_number := Workers_Number, 
-	     task_ime := Time, 
-	     workers_await := Await,
-	     workers_await_size := Workers_Await_Job}) when Workers_Number - Workers_Await_Job =< 0 ->
-    %% Start on existing workers
-    Sub = lists:sublist(maps:to_list(Await), Workers_Number),
-    [kinder:job(P, Task_Module, Time) || {P, _} <- Sub];
-
-start_task(#{workers_await := Workers} = Args) ->
-    start_task(Args#{workers_await_size => maps:size(Workers)}).
-
     
     
