@@ -14,7 +14,10 @@
 
 -callback init_metrics() -> ok.
 -callback init(Args :: list()) -> term().
--callback job(Connection :: pid(), State :: term()) -> {profile, ProfileClosure :: fun(), State :: term()} | {ok, State :: term()}.
+-callback job(Connection :: pid(), State :: term()) ->
+    {profile, ProfileClosure :: fun(), State :: term()} | {ok, State :: term()}.
+-callback start(Args :: list(), Time :: pos_integer(), Sleep :: pos_integer() | undefined) ->
+    {ok, pid()}.
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
