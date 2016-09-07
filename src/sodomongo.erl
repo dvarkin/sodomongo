@@ -18,9 +18,7 @@ start_deps() ->
     ok = application:ensure_started(folsom),
     ok = application:ensure_started(protobuffs),
     ok = application:ensure_started(zeta),
-    ok = application:ensure_started(folsomite),
-    ok = application:ensure_started(compiler),
-    ok = application:ensure_started(syntax_tools).
+    ok = application:ensure_started(folsomite).
 
 
 init_test(Db) ->
