@@ -14,6 +14,7 @@
 
 -type metrics() :: #{ doc_count => pos_integer(),
                       error_reason => any(),
+                      result => any(),
                       status => success | error }.
 -type action_closure() :: fun( () -> metrics() ).
 

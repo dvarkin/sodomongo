@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/5, start_test/7, init_test/1]).
+-export([start/0, start_deps/0, start_test/5, start_test/7, init_sharded_test/1]).
 
 -include("generator.hrl").
 
@@ -21,7 +21,7 @@ start_deps() ->
     ok = application:ensure_started(folsomite).
 
 
-init_test(Db) ->
+init_sharded_test(Db) ->
     {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
     ConnectionArgs = lists:keyreplace(database, 1, RawArgs,{database, Db}),
     AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),
@@ -55,9 +55,8 @@ init_test(Db) ->
         <<"key">>, {?ID, <<"hashed">>}
     }).
 
-
 start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
-    init_test(Db),
+    init_sharded_test(Db),
     kinder_metrics:create_jobs([insert_gameinfo_task, update_odd_task, delete_gameinfo_task, ReadTaskModule]),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
     hugin:start_job(update_odd_task, UpdateWorkers, Time),
