@@ -30,7 +30,7 @@ start(ConnectionArgs, Time, SleepTimer) ->
 init(_Init_Args) ->
     {ok, undefined_state}.
 
-job(Connection, State) ->
+job({Connection, _}, State) ->
     case meta_storage:get_random_market() of 
         undefined ->
             {ok, undefined, State};

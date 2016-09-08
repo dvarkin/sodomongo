@@ -55,7 +55,6 @@ init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
     timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
-    hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
     Module_State = Module:init(Args),
     {ok, #state{connection_args = ConnectionArgs, 
                 module = Module, 
@@ -89,6 +88,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
+    hugin:worker_terminate(self()),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
