@@ -10,7 +10,7 @@
 -author("serhiinechyporhuk").
 
 %% API
--export([rand_nth/1, parse_find_response/1]).
+-export([rand_nth/1, parse_find_response/1, parse_command_response/1, timestamp_with_offset/2]).
 
 rand_nth([H|[]]) -> H;
 
@@ -29,3 +29,18 @@ parse_find_response(Cursor) ->
         Data == error -> #{ status => error, error_reason => "Unknown error" };
         true -> #{ status => success, doc_count => length(Data), result => Data}
     end.
+
+parse_command_response(Response) ->
+    case Response of
+        {false, _} ->
+            #{ status => error, error_reason => "Unknown error" };
+        {true, #{ <<"result">> := Data}} ->
+            #{ status => success, doc_count => length(Data), result => Data}
+    end.
+
+timestamp_with_offset(Timestamp, OffsetSet) ->
+    SecInMega = 1000000,
+    {Mega, Sec, Ms} = Timestamp,
+    TotalSec = Mega * SecInMega + Sec,
+    NewSec = TotalSec + OffsetSet,
+    {NewSec div SecInMega, NewSec rem SecInMega, Ms}.
