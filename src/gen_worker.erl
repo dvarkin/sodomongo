@@ -20,7 +20,7 @@
 
 -callback init_metrics() -> ok.
 -callback init(Args :: list()) -> term().
--callback job(Connection :: pid(), State :: term()) ->
+-callback job({ReadConnection :: pid(), WriteConnection :: pid()}, State :: term()) ->
     {ok, ActionClosure :: action_closure(), State :: term()}.
 -callback start(Args :: list(), Time :: pos_integer(), Sleep :: pos_integer() | undefined) ->
     {ok, pid()}.
@@ -34,8 +34,8 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {connection_args :: list(), 
-                connection :: pid(),
+-record(state, {connection_args :: map(),
+                connections :: { MasterConn :: pid(), SecCon :: pid() },
                 module :: atom(), 
                 time :: pos_integer(), 
                 sleep :: integer(),
@@ -72,13 +72,14 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} = State) ->
-    {ok, Connection} = connect_to_mongo(ConnectionArgs),
+    {ok, MasterConn} = mongo:connect_to_master(ConnectionArgs),
+    {ok, SecConn} = mongo:connect_to_secondary(ConnectionArgs),
     self() ! tick, 
     hugin:worker_monitor(self(), Module, 'INPROGRESS'),
-    {noreply, State#state{connection = Connection}};
+    {noreply, State#state{connections = {MasterConn, SecConn}}};
 
-handle_info(tick, #state{module = Module, connection = Connection, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
-    Response = Module:job(Connection, Module_State),
+handle_info(tick, #state{module = Module, connections = Connections, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
+    Response = Module:job(Connections, Module_State),
     Module_State_New = parse_response(Response, Module, Metrics),
     idle(Sleep),
     {noreply, State#state{module_state = Module_State_New}};
@@ -96,20 +97,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-
-%% @private %%
-select_host(Hosts) ->
-    Index = rand:uniform(length(Hosts)),
-    lists:nth(Index, Hosts).
-
-connect_to_mongo(ConnectionArgs) ->
-    Hosts = proplists:get_value(host, ConnectionArgs),
-    Host = select_host(Hosts),
-    WithOneHost = lists:keyreplace(host, 1, ConnectionArgs, {host, Host}),
-    mc_worker_api:connect(WithOneHost).
-
-%%% INTERNAL
 
 %%% Init Metrics
 
@@ -148,12 +135,8 @@ idle(Sleep) when Sleep > 0 ->
     timer:send_after(Sleep, tick);
 idle(_) ->
     self() ! tick.
-    
 
-
-%%% JOB 
-
-
+%%% JOB
 
 profile_job(Module, Action,
                 #{
@@ -180,20 +163,3 @@ profile_job(Module, Action,
                 metrics:notify({Error, {inc, 1}})
             end
     end.
-%%    case Response of
-%%        {false, _} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, response: ~p~n", [Module, Response]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, error: ~p~n", [Module, WriteErrors]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true,  #{ <<"n">> := N }} ->
-%%            begin
-%%                metrics:notify({DocsCount, N}),
-%%                metrics:notify({Success, {inc, 1}})
-%%            end
-%%    end.

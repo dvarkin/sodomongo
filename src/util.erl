@@ -21,11 +21,10 @@ rand_nth([_|_] = List) ->
 rand_nth(_) ->
     undefined.
 
-
 parse_find_response(Cursor) ->
     Data = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     if
         Data == error -> #{ status => error, error_reason => "Unknown error" };
-        true -> #{ status => success, doc_count => length(Data), result => Data}
+        true -> #{ status => success, doc_count => length(Data), result => Data }
     end.

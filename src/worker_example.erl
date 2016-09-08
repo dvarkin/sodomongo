@@ -29,9 +29,9 @@ job(Connection, State) ->
 %%% Internal functions
 %%%===================================================================
 
-some_query(Connection, Info) ->
+some_query({MasterConn, _SecCon}, Info) ->
     fun() ->
-        mc_worker_api:find_one(Connection, <<"odds">>, {<<"_id">>, Info}),
+        mc_worker_api:find_one(MasterConn, <<"odds">>, {<<"_id">>, Info}),
         #{doc_count => 1, status => success}
 %            mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo)
     end.

@@ -18,7 +18,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {workers = #{}, mongo_connection}).
+-record(state, {workers = #{}, mongo_conn_args}).
 
 %% API.
 
@@ -71,17 +71,17 @@ init([]) ->
     {ok, UpdateInterval} = application:get_env(folsomite, flush_interval),
     timer:apply_interval(UpdateInterval, kinder_metrics, notify, []),
 
-    {ok, Connection} = application:get_env(sodomongo, mongo_connection),
-    {ok, #state{mongo_connection = Connection}}.
+    ConnArgs = mongo:conn_args(),
+    {ok, #state{mongo_conn_args = ConnArgs}}.
 
 handle_call(workers, _From, #state{workers = Workers} = State) ->
     {reply, Workers, State};
 
-handle_call({workers, WorkersNumber}, _From, #state{mongo_connection = ConnectionArgs} = State) ->
+handle_call({workers, WorkersNumber}, _From, #state{mongo_conn_args = ConnectionArgs} = State) ->
     start_workers(ConnectionArgs, WorkersNumber),
     {reply, WorkersNumber, State};
 
-handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_connection = ConnectionArgs} = State) ->
+handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_conn_args = ConnectionArgs} = State) ->
     [Task_Module:start(ConnectionArgs, Time, Sleep) || _ <- lists:seq(1, WorkersNum)],
     {reply, ok, State};
 
