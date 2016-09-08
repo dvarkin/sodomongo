@@ -1,6 +1,8 @@
 -module(read_top_events_by_turnover_task).
 -author("eugeny").
 
+-behavior(gen_worker).
+
 -include("generator.hrl").
 -define(QUERY_LIMIT, 10).
 
