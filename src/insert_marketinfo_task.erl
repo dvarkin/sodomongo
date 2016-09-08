@@ -1,4 +1,4 @@
--module(insert_gameinfo_task).
+-module(insert_marketinfo_task).
 
 -behaviour(gen_worker).
 
@@ -31,26 +31,22 @@ init(_Init_Args) ->
     {ok, undefined_state}.
 
 job(Connection, State) ->
-    {GameInfo, Markets, GameId, MarketIds, SelectionIds} = generate_data(),
-    meta_storage:insert_game(GameId, MarketIds, SelectionIds, Markets),
-    {ok, insert(Connection, GameInfo), State}.
+    case meta_storage:get_random_market() of 
+        undefined ->
+            {ok, undefined, State};
+        Market ->
+            {ok, insert(Connection, Market), State}
+    end.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-insert(Connection, GameInfo) ->
+insert(Connection, Data) ->
     fun() ->
-            Response =  mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo),
+            Response =  mc_worker_api:insert(Connection, ?MARKETINFO, Data),
             parse_response(Response)
     end.
-
-generate_data() ->
-    {GameInfo, Markets} = generator:new_game_with_markets(),
-    #{?ID := GameId} = GameInfo,
-    MarketIds = [Id || #{?ID := Id} <- Markets],
-    SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
-    {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
 
 parse_response({{false, _}, _Data} = Response) ->
     #{status => error, response => Response};

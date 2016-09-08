@@ -139,9 +139,12 @@ start_metrics([{MetricType, Metric} | Metrics] ) ->
 start_metrics([]) ->
     ok.
 
+parse_response({ok, undefined, Module_State_New}, _Module, _Metrics) ->
+    Module_State_New;
 parse_response({ok, ProfileAction, Module_State_New}, Module, Metrics) ->
     profile_job(Module, ProfileAction, Metrics),
     Module_State_New.
+
 
 
 idle(Sleep) when Sleep > 0 ->
