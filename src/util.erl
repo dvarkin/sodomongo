@@ -31,8 +31,8 @@ parse_find_response(Cursor) ->
 
 parse_command_response(Response) ->
     case Response of
-        {false, _} ->
-            #{ status => error, error_reason => "Unknown error" };
+        {false, Error} ->
+            #{ status => error, error_reason => Error };
         {true, #{ <<"result">> := Data}} ->
             #{ status => success, doc_count => length(Data), result => Data}
     end.

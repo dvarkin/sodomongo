@@ -29,8 +29,8 @@ init(_Init_Args) ->
         max_start_date => util:timestamp_with_offset(os:timestamp(), ?HOUR_IN_SEC)
     }.
 
-job(Connection, State) ->
-    {ok, query(Connection, maps:with([query_limit, max_start_date], State)), State}.
+job({MasterConn, _SecConn}, State) ->
+    {ok, query(MasterConn, maps:with([query_limit, max_start_date], State)), State}.
 
 %%%===================================================================
 %%% Internal functions
