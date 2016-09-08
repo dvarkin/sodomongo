@@ -53,7 +53,7 @@ start_link(Module, Args, Time, Sleep) ->
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
-    timer:exit_after(Time, normal),
+    timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
     Module_State = Module:init(Args),
@@ -139,9 +139,12 @@ start_metrics([{MetricType, Metric} | Metrics] ) ->
 start_metrics([]) ->
     ok.
 
+parse_response({ok, undefined, Module_State_New}, _Module, _Metrics) ->
+    Module_State_New;
 parse_response({ok, ProfileAction, Module_State_New}, Module, Metrics) ->
     profile_job(Module, ProfileAction, Metrics),
     Module_State_New.
+
 
 
 idle(Sleep) when Sleep > 0 ->
@@ -170,30 +173,9 @@ profile_job(Module, Action,
     Response = profiler:prof(Time, Action),
     case Response of
         #{status := success, doc_count := N} ->
-            begin
-                metrics:notify({DocsCount, N}),
-                metrics:notify({Success, {inc, 1}})
-            end;
-        #{status := error, error_reason := Reason} ->
-            begin
-                error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
-                metrics:notify({Error, {inc, 1}})
-            end
+            metrics:notify({DocsCount, N}),
+            metrics:notify({Success, {inc, 1}});
+        #{status := error, response := Reason} ->
+            error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
+            metrics:notify({Error, {inc, 1}})
     end.
-%%    case Response of
-%%        {false, _} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, response: ~p~n", [Module, Response]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, error: ~p~n", [Module, WriteErrors]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true,  #{ <<"n">> := N }} ->
-%%            begin
-%%                metrics:notify({DocsCount, N}),
-%%                metrics:notify({Success, {inc, 1}})
-%%            end
-%%    end.
