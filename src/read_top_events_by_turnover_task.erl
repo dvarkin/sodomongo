@@ -1,30 +1,55 @@
-%%%-------------------------------------------------------------------
-%%% @author eugeny
-%%% @copyright (C) 2016, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 02. Sep 2016 10:30
-%%%-------------------------------------------------------------------
 -module(read_top_events_by_turnover_task).
 -author("eugeny").
 
 -include("generator.hrl").
+-define(QUERY_LIMIT, 10).
 
 %% API
--export([run/1, query/2]).
 
--define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
--define(RATE, <<?TASK/binary, ".rate">>).
--define(TIME, <<?TASK/binary, ".time">>).
--define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
--define(OPERATIONS, <<?TASK/binary, ".operations">>).
--define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
--define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
--define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
+-export([init_metrics/0, job/2, init/1, start/3]).
 
--define(QUERY_LIMIT, 10).
--define(TASK_SLEEP, 1).
+init_metrics() ->
+    gen_worker:init_metrics(?MODULE).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+start(ConnectionArgs, Time, SleepTimer) ->
+    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
+
+init(_Init_Args) ->
+    #{
+        query_limit => ?QUERY_LIMIT,
+        branch_ids => []
+    }.
+
+job({MasterConn, _SlaveConn} = Conns, #{branch_ids := []} = State) ->
+    BranchIds = get_branch_ids(MasterConn),
+    job(Conns, State#{branch_ids := BranchIds});
+
+job({MasterConn, _SlaveConn}, #{branch_ids := BranchIds, query_limit := Limit} = State) ->
+    BranchId = util:rand_nth(BranchIds),
+    {ok, query(MasterConn, BranchId, Limit), State}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+query(Connection, BranchId, Limit) ->
+    fun() ->
+        Command = {
+            <<"aggregate">>, <<"gameinfo">>,
+            <<"pipeline">>, [
+                {<<"$match">>, {<<"BranchID">>, BranchId}},
+                {<<"$sort">>, {<<"GameBets.TotalDepositGBP">>, -1}},
+                {<<"$limit">>, Limit}
+            ]
+        },
+
+        Response = mc_worker_api:command(Connection, Command),
+        util:parse_command_response(Response)
+    end.
 
 get_branch_ids(Connection) ->
     Cursor = mc_worker_api:find(
@@ -38,45 +63,3 @@ get_branch_ids(Connection) ->
     BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
     mc_cursor:close(Cursor),
     sets:to_list(sets:from_list(BranchIDs)).
-
-query(Connection, BranchId) ->
-    Command = {
-        <<"aggregate">>, <<"gameinfo">>,
-        <<"pipeline">>, [
-            {<<"$match">>, {<<"BranchID">>, BranchId}},
-            {<<"$sort">>, {<<"GameBets.TotalDepositGBP">>, -1}},
-            {<<"$limit">>, ?QUERY_LIMIT}
-        ]
-    },
-    {_, Result} = Response = profiler:prof(?TIME, fun() -> mc_worker_api:command(Connection, Command) end),
-
-    case Response of
-        {false, _} ->
-            begin
-                error_logger:error_msg("Can't read in module: ~p~n, response: ~p~n", [?MODULE, Response]),
-                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true,  #{ <<"result">> := Res}} ->
-            begin
-                metrics:notify({?DOC_COUNT, length(Res)}),
-                metrics:notify({?OPERATIONS_SUC, {inc, 1}})
-            end
-    end,
-
-    metrics:notify({?RATE, 1}),
-    metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
-
-    timer:sleep(?TASK_SLEEP),
-
-    Result.
-
-job(Connection, BranchId) ->
-    query(Connection, BranchId),
-    job(Connection, BranchId).
-
-run(Connection) ->
-    BranchIds = get_branch_ids(Connection),
-    metrics:create(meter, ?RATE),
-    metrics:create(histogram, ?TIME),
-    metrics:create(histogram, ?DOC_COUNT),
-    job(Connection, generator:rand_nth(BranchIds)).
