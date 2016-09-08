@@ -27,6 +27,7 @@ init(_Init_Args) ->
 
 job(Connection, State) ->
     SomeInfo = 1,
+    error_logger:info_msg("iteration ~p", [State] ),
     {ok, some_query(Connection, SomeInfo), State}.
 
 %%%===================================================================

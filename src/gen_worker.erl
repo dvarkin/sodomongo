@@ -52,7 +52,7 @@ start_link(Module, Args, Time, Sleep) ->
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
-    timer:exit_after(Time, normal),
+    timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
     Module_State = Module:init(Args),
