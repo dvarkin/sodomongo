@@ -77,7 +77,7 @@ handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} =
     hugin:worker_monitor(self(), Module, 'INPROGRESS'),
     {noreply, State#state{connection = Connection}};
 
-handle_info(tick, #state{module = Module, connection = Connection, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) when Sleep > 0 ->
+handle_info(tick, #state{module = Module, connection = Connection, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
     Response = Module:job(Connection, Module_State),
     Module_State_New = parse_response(Response, Module, Metrics),
     idle(Sleep),
