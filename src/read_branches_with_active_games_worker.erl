@@ -1,4 +1,4 @@
--module(read_branches_with_active_games_task).
+-module(read_branches_with_active_games_worker).
 -author("eugeny").
 
 -behaviour(gen_worker).
@@ -6,7 +6,6 @@
 -include("generator.hrl").
 
 -define(QUERY_LIMIT, 10).
--define(TASK_SLEEP, 1).
 -define(HOUR_IN_SEC, 60 * 60).
 
 %% API
