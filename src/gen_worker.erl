@@ -170,30 +170,9 @@ profile_job(Module, Action,
     Response = profiler:prof(Time, Action),
     case Response of
         #{status := success, doc_count := N} ->
-            begin
-                metrics:notify({DocsCount, N}),
-                metrics:notify({Success, {inc, 1}})
-            end;
-        #{status := error, error_reason := Reason} ->
-            begin
-                error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
-                metrics:notify({Error, {inc, 1}})
-            end
+            metrics:notify({DocsCount, N}),
+            metrics:notify({Success, {inc, 1}});
+        #{status := error, response := Reason} ->
+            error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
+            metrics:notify({Error, {inc, 1}})
     end.
-%%    case Response of
-%%        {false, _} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, response: ~p~n", [Module, Response]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-%%            begin
-%%                error_logger:error_msg("Can't make query from module: ~p~n, error: ~p~n", [Module, WriteErrors]),
-%%                metrics:notify({Error, {inc, 1}})
-%%            end;
-%%        {true,  #{ <<"n">> := N }} ->
-%%            begin
-%%                metrics:notify({DocsCount, N}),
-%%                metrics:notify({Success, {inc, 1}})
-%%            end
-%%    end.
