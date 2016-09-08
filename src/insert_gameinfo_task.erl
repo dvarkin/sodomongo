@@ -1,4 +1,4 @@
--module(insert_gameinfo_task2).
+-module(insert_gameinfo_task).
 
 -behaviour(gen_worker).
 
@@ -31,7 +31,7 @@ init(_Init_Args) ->
     {ok, undefined_state}.
 
 job(Connection, State) ->
-    {GameInfo, _Markets,GameId, MarketIds, SelectionIds} = generate_data(),
+    {GameInfo, _Markets, GameId, MarketIds, SelectionIds} = generate_data(),
     meta_storage:insert_game(GameId, MarketIds, SelectionIds),
     error_logger:info_msg("insert ~p", [GameInfo]),
     {ok, insert(Connection, GameInfo), State}.
