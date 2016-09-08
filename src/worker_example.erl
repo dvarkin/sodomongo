@@ -26,7 +26,6 @@ init(_Init_Args) ->
     {ok, undefined_state}.
 
 job(Connection, State) ->
-    error_logger:info_msg("job: ~p~n", [State]),
     SomeInfo = 1,
     {ok, some_query(Connection, SomeInfo), State}.
 

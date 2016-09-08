@@ -52,7 +52,6 @@ start_link(Module, Args, Time, Sleep) ->
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
-    error_logger:info_msg("Init: ~p~n", [Args]),
     timer:exit_after(Time, normal),
     Metrics = make_metrics_titles(Module),
     hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
@@ -72,7 +71,6 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} = State) ->
-    error_logger:info_msg("Connect: ~p~n", [State]),
     {ok, Connection} = connect_to_mongo(ConnectionArgs),
     self() ! tick, 
     hugin:worker_monitor(self(), Module, 'INPROGRESS'),
@@ -105,7 +103,6 @@ select_host(Hosts) ->
     lists:nth(Index, Hosts).
 
 connect_to_mongo(ConnectionArgs) ->
-    error_logger:info_msg("Con2Mon: ~p~n", [ConnectionArgs]),
     Hosts = proplists:get_value(host, ConnectionArgs),
     Host = select_host(Hosts),
     WithOneHost = lists:keyreplace(host, 1, ConnectionArgs, {host, Host}),
