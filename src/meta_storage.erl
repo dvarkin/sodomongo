@@ -7,7 +7,13 @@
 
 %% API
 -export([start_link/0]).
--export([insert_game/3, get_random_game/0, delete_game/1, get_market_ids/1, get_selections/1, get_random_market/0]).
+-export([insert_game/4, 
+         get_random_game/0,
+         delete_game/1,
+         get_market_ids/1, 
+         get_selections/1, 
+         get_random_market_id/0, 
+         get_random_market/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -19,16 +25,19 @@
 
 -define(SERVER, {global, ?MODULE}).
 
--record(state, {game_info_tab, selection_tab}).
+-record(state, {game_info_tab = #{}, selection_tab = #{}, markets = []}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-insert_game(GameId, MarketIds, SelectionIds) ->
-  gen_server:cast(?SERVER, {insert_game, GameId, MarketIds, SelectionIds}).
+insert_game(GameId, MarketIds, SelectionIds, Markets) ->
+  gen_server:cast(?SERVER, {insert_game, GameId, MarketIds, SelectionIds, Markets}).
 
 get_random_game() ->
   gen_server:call(?SERVER, get_random_game).
+
+get_random_market_id() ->
+    gen_server:call(?SERVER, get_random_market_id).
 
 get_random_market() ->
     gen_server:call(?SERVER, get_random_market).
@@ -73,11 +82,7 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-    Game_Info_Tab = #{},
-    Selection_Tab = #{},
-%    Game_Info_Tab = ets:new(game_info_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
-%    Selection_Tab = ets:new(selection_tab, [set, {keypos, 1}, {write_concurrency, true}, {read_concurrency, true}]),
-    {ok, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab}}.
+    {ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -98,13 +103,16 @@ init([]) ->
 handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     GameId = util:rand_nth(maps:keys(Game_Info_Tab)),
     {reply, GameId, State};
+handle_call(get_random_market, _From, #state{markets = Markets} = State) ->
+    Market = util:rand_nth(Markets),
+    {reply, Market, State#state{markets = lists:delete(Market, Markets)}};
 handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     MarketIds = maps:get(GameId, Game_Info_Tab),
     {reply, MarketIds, State };
 handle_call({get_selections, MarketId}, _From, #state{selection_tab = Market_Info_Tab} = State) ->
     Selections = maps:get(MarketId, Market_Info_Tab),
     {reply, Selections, State};
-handle_call(get_random_market, _From, #state{selection_tab = Market_Info_Tab} = State) ->
+handle_call(get_random_market_id, _From, #state{selection_tab = Market_Info_Tab} = State) ->
     Reply = case util:rand_nth(maps:keys(Market_Info_Tab)) of
                 undefined ->
                     undefined;
@@ -127,11 +135,11 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({insert_game, GameId, MarketIds, Selections}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab} = State) ->
+handle_cast({insert_game, GameId, MarketIds, Selections, NewMarkets}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab, markets = Markets} = State) ->
     S1 = maps:from_list(Selections),
     Selection_Tab1 = maps:merge(S1, Selection_Tab),
     Game_Info_Tab1 = maps:put(GameId, MarketIds, Game_Info_Tab),
-    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1}};
+    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1, markets = lists:merge(NewMarkets, Markets)}};
 
 handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
     MarketIds = maps:get(GameId, Game_Info_Tab),
