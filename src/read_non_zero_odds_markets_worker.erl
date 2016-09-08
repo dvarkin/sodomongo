@@ -1,4 +1,4 @@
--module(read_non_zero_odds_markets_task).
+-module(read_non_zero_odds_markets_worker).
 -author("eugeny").
 
 -behavior(gen_worker).

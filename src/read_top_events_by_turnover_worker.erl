@@ -1,4 +1,4 @@
--module(read_top_events_by_turnover_task).
+-module(read_top_events_by_turnover_worker).
 -author("eugeny").
 
 -behavior(gen_worker).

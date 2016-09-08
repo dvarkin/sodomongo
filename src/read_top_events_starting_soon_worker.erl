@@ -1,4 +1,4 @@
--module(read_top_events_starting_soon_task).
+-module(read_top_events_starting_soon_worker).
 -author("eugeny").
 
 -behaviour(gen_worker).
