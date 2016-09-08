@@ -1,58 +1,37 @@
 -module(read_non_zero_odds_markets_task).
 -author("eugeny").
 
+-behavior(gen_worker).
+
+-include("generator.hrl").
+
 %% API
--export([run/1]).
+-export([init_metrics/0, job/2, init/1, start/3]).
 
--define(TASK_SLEEP, 1).
--define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
--define(RATE, <<?TASK/binary, ".rate">>).
--define(TIME, <<?TASK/binary, ".time">>).
--define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
--define(OPERATIONS, <<?TASK/binary, ".operations">>).
--define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
--define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
--define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
+%%%===================================================================
+%%% API
+%%%===================================================================
 
-job(Connection) ->
-    Query = #{<<"Selections.Odds">> => #{<<"$ne">> => 0}},
-    Collection = <<"marketinfo">>,
-    Result = profiler:prof(
-        ?TIME,
-        fun() ->
-            Cursor = mc_worker_api:find(
-                Connection,
-                Collection,
-                Query
-            ),
-            Data = mc_cursor:rest(Cursor),
-            mc_cursor:close(Data),
-            Data
-        end),
+init_metrics() ->
+    gen_worker:init_metrics(?MODULE).
 
-    if
-        Result == error ->
-            begin
-                error_logger:error_msg("Can't fetch response: ~p~n", [?MODULE]),
-                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
-            end;
-        true  ->
-            begin
-                metrics:notify({?DOC_COUNT, length(Result)}),
-                metrics:notify({?OPERATIONS_SUC, {inc, 1}})
-            end
-    end,
+start(ConnectionArgs, Time, SleepTimer) ->
+    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
 
-    metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
-    metrics:notify({?RATE, 1}),
-    timer:sleep(?TASK_SLEEP),
-    job(Connection).
+init(_init_Args) ->
+    undefined.
 
-run(Connection) ->
-    metrics:create(meter, ?RATE),
-    metrics:create(histogram, ?TIME),
-    metrics:create(histogram, ?DOC_COUNT),
-    metrics:create(counter, ?OPERATIONS_TOTAL),
-    metrics:create(counter, ?OPERATIONS_ERR),
-    metrics:create(counter, ?OPERATIONS_SUC),
-    job(Connection).
+job({MasterConn, _}, State) ->
+    {ok, query(MasterConn), State}.
+
+query(Connection) ->
+    fun() ->
+        Query = #{<<"Selections.Odds">> => #{<<"$ne">> => 0}},
+        Collection = <<"marketinfo">>,
+        Cursor = mc_worker_api:find(
+            Connection,
+            Collection,
+            Query
+        ),
+        util:parse_find_response(Cursor)
+    end.
