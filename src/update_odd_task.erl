@@ -1,79 +1,64 @@
 -module(update_odd_task).
+
+-behaviour(gen_worker).
+
 -include("generator.hrl").
 
--export([run/1]).
+%% API
+-export([start/3, start/0]).
 
--define(TASK_SLEEP, 10).
--define(TASK, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
--define(RATE, <<?TASK/binary, ".rate">>).
--define(TIME, <<?TASK/binary, ".time">>).
--define(DOC_COUNT, <<?TASK/binary, ".documents_count">>).
--define(OPERATIONS, <<?TASK/binary, ".operations">>).
--define(OPERATIONS_TOTAL, <<?OPERATIONS/binary, ".total">>).
--define(OPERATIONS_ERR, <<?OPERATIONS/binary, ".err">>).
--define(OPERATIONS_SUC, <<?OPERATIONS/binary, ".suc">>).
--define(DEV_GEN_TIME, <<?TASK/binary, ".dev.gen_time">>).
+%% gen_worker behaviour API
+
+-export([init_metrics/0, job/2, init/1]).
+
+init_metrics() ->
+    gen_worker:init_metrics(?MODULE).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-%% create_indexes(Connection) ->
-%%     mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {?ID, <<"hashed">>}}),
-%%     mc_worker_api:ensure_index(Connection, ?MARKETINFO, #{<<"key">> => {<<"Selections.ID">>,1}}).
-
-
-
-run(Connection) ->
+start() ->
+    {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
+    start(RawArgs, 5000, 1000).
     
-    %% init metrics
-    metrics:create(meter, ?RATE),
-    metrics:create(histogram, ?DEV_GEN_TIME),
-    metrics:create(histogram, ?TIME),
-    metrics:create(histogram, ?DOC_COUNT),
-    metrics:create(counter, ?OPERATIONS_TOTAL),
-    metrics:create(counter, ?OPERATIONS_ERR),
-    metrics:create(counter, ?OPERATIONS_SUC),
 
-    %% Mian task
-    job(Connection).
+start(ConnectionArgs, Time, SleepTimer) -> 
+    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
 
-job(Connection) ->
+init(_Init_Args) ->
+    {ok, undefined_state}.
+
+job({Connection, _}, State) ->
     case meta_storage:get_random_market() of
         {MarketId, SelectionIds} ->
             SelectionId = generator:rand_nth(SelectionIds),
-            update_odd(Connection, MarketId, SelectionId);
-        _ -> emtpy_meta_storage
-    end,
-
-
-%    timer:sleep(?TASK_SLEEP),
-
-    job(Connection).
-
+            {ok, update_odd(Connection, MarketId, SelectionId), State};
+        _ -> 
+            {ok, undefined, State}
+    end.
+        
 update_odd(Connection, MarketId, SelectionId) ->
-    Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
-    Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
-    Response = profiler:prof(?TIME,
-        fun() ->
-            mc_worker_api:update(Connection, ?MARKETINFO, Query, Command)
-        end),
-    case Response of
-        {false, _} ->
-            begin
-                error_logger:error_msg("Can't update MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]),
-                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            begin
-                error_logger:error_msg("Can't update MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]),
-                metrics:notify({?OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true,  #{ <<"n">> := N }} ->
-            begin
-                metrics:notify({?DOC_COUNT, N}),
-                metrics:notify({?OPERATIONS_SUC, {inc, 1}})
-            end
-    end,
-    metrics:notify({?OPERATIONS_TOTAL, {inc, 1}}),
-    metrics:notify({?RATE, 1}).
+    fun() ->
+            Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
+            Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
+            Response = mc_worker_api:update(Connection, ?MARKETINFO, Query, Command),
+            parse_response(Response)
+    end.
+
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+parse_response({{false, _}, _Data} = Response) ->
+    #{status => error, response => Response};
+parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
+    #{status => error, response => Response};
+parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
+    #{status => success, doc_count => N, response => Response};
+parse_response(Response) ->
+    error_logger:error_msg("Unparsed response ~p", [Response]),
+    #{status => error, response => Response}.
+
+

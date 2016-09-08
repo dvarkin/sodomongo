@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/5, start_test/7, init_sharded_test/1]).
+-export([start/0, start_deps/0, start_test/3, init_sharded_test/1]).
 
 -include("generator.hrl").
 
@@ -55,14 +55,24 @@ init_sharded_test(Db) ->
         <<"key">>, {?ID, <<"hashed">>}
     }).
 
-start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, ReadTaskModule, Time) ->
-    init_sharded_test(Db),
-    kinder_metrics:create_jobs([insert_gameinfo_task, update_odd_task, delete_gameinfo_task, ReadTaskModule]),
-    hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
-    hugin:start_job(update_odd_task, UpdateWorkers, Time),
-    hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
-    hugin:start_job(ReadTaskModule, ReadWorkers, Time).
+init_metrics() ->
+    insert_gameinfo_task:init_metrics(),
+    insert_marketinfo_task:init_metrics(),
+    update_odd_task:init_metrics().
 
-start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
-    start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
+start_test(InsertWorkers, UpdateWorkers, Time) ->
+    init_metrics(),
+    hugin:start_job(insert_gameinfo_task, InsertWorkers, Time, 1000),
+    hugin:start_job(insert_marketinfo_task, InsertWorkers, Time, 10),
+    hugin:start_job(update_odd_task, UpdateWorkers, Time, 10).
+    
+    
+    %% kinder_metrics:create_jobs([insert_gameinfo_task, update_odd_task, delete_gameinfo_task, ReadTaskModule]),
+    %% hugin:start_job(insert_gameinfo_task, InsertWorkers, Time),
+    %% hugin:start_job(update_odd_task, UpdateWorkers, Time),
+    %% hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time),
+    %% hugin:start_job(ReadTaskModule, ReadWorkers, Time).
+
+%% start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
+%%     start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
 
