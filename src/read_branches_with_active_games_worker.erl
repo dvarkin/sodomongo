@@ -1,4 +1,4 @@
--module(read_top_events_starting_soon_task).
+-module(read_branches_with_active_games_worker).
 -author("eugeny").
 
 -behaviour(gen_worker).
@@ -6,7 +6,6 @@
 -include("generator.hrl").
 
 -define(QUERY_LIMIT, 10).
--define(TASK_SLEEP, 1).
 -define(HOUR_IN_SEC, 60 * 60).
 
 %% API
@@ -24,37 +23,39 @@ start(ConnectionArgs, Time, SleepTimer) ->
     gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
 
 init(_Init_Args) ->
-    #{
-        query_limit => ?QUERY_LIMIT,
-        max_start_date => util:timestamp_with_offset(os:timestamp(), ?HOUR_IN_SEC)
-    }.
+    undefined.
 
-job({MasterConn, _SecConn}, State) ->
-    {ok, query(MasterConn, maps:with([query_limit, max_start_date], State)), State}.
+job({_MasterConn, SlaveConn}, State) ->
+    {ok, query(SlaveConn), State}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-query(Connection, #{query_limit := Limit, max_start_date := MaxStartDate}) ->
+query(Connection) ->
     fun() ->
         Command = {
             <<"aggregate">>, <<"gameinfo">>,
             <<"pipeline">>, [
-                {
-                    <<"$match">>, {
-                    <<"StartDate">>, {
-                        <<"$lt">>, MaxStartDate
+                #{
+                    <<"$match">> => #{
+                        <<"IsActive">> => true
                     }
-                }
                 },
-                {
-                    <<"$sort">>, {
-                    <<"StartDate">>, 1
-                }
+                #{
+                    <<"$group">> => #{
+                        <<"_id">> => <<"$BranchID">>,
+                        <<"Events">> => #{
+                            <<"$sum">> => 1
+                        }
+                    }
                 },
-                {
-                    <<"$limit">>, Limit
+                #{
+                    <<"$project">> => #{
+                        <<"_id">> => 0,
+                        <<"BranchID">> => "$_id",
+                        <<"Events">> => 1
+                    }
                 }
             ]
         },

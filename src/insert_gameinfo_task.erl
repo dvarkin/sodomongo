@@ -30,7 +30,7 @@ start(ConnectionArgs, Time, SleepTimer) ->
 init(_Init_Args) ->
     {ok, undefined_state}.
 
-job(Connection, State) ->
+job({Connection, _}, State) ->
     {GameInfo, Markets, GameId, MarketIds, SelectionIds} = generate_data(),
     meta_storage:insert_game(GameId, MarketIds, SelectionIds, Markets),
     {ok, insert(Connection, GameInfo), State}.

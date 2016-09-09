@@ -53,9 +53,9 @@ start_link(Module, Args, Time, Sleep) ->
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
-    timer:apply_after(Time, gen_server, stop, [self()]),
+    timer:kill_after(Time),
+    %timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
-    hugin:worker_monitor(self(), Module, 'WAIT_CONNECTION'),
     Module_State = Module:init(Args),
     {ok, #state{connection_args = ConnectionArgs, 
                 module = Module, 
@@ -88,7 +88,10 @@ handle_info(_Info, State) ->
     error_logger:error_msg("Unhandeled message in worker: ~p", [_Info]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, #state{connections = {Master, Slave}}) ->
+    mc_worker_api:disconnect(Master),
+    mc_worker_api:disconnect(Slave),
+    hugin:worker_terminate(self()),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
