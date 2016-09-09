@@ -158,7 +158,7 @@ profile_job(Module, Action,
         #{status := success, doc_count := N} ->
             metrics:notify({DocsCount, N}),
             metrics:notify({Success, {inc, 1}});
-        #{status := error, response := Reason} ->
+        #{status := error, error_reason := Reason} ->
             error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reason]),
             metrics:notify({Error, {inc, 1}})
     end.
