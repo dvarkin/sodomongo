@@ -29,13 +29,13 @@ start(ConnectionArgs, Time, SleepTimer) ->
 init(_Init_Args) ->
    #{branches_ids => []}.
 
-job({MasterConn, _} = Conns, #{branches_ids := []} = State) ->
-    BranchesIDs = get_branch_ids(MasterConn),
+job({_, SlaveConn} = Conns, #{branches_ids := []} = State) ->
+    BranchesIDs = get_branch_ids(SlaveConn),
     job(Conns, State#{branches_ids := BranchesIDs});
 
-job({MasterConn, _}, #{branches_ids := BranchesIDs} = State) ->
+job({_, SlaveConn}, #{branches_ids := BranchesIDs} = State) ->
     BranchID = util:rand_nth(BranchesIDs),
-    {ok, query(MasterConn, BranchID), State}.
+    {ok, query(SlaveConn, BranchID), State}.
 
 query(Connection, BranchID) ->
     fun() ->

@@ -8,7 +8,7 @@ DEPS = mongodb folsom folsomite
 
 LOCAL_DEPS = crypto bson mongodb
 
-dep_mongodb = git https://github.com/dvarkin/mongodb-erlang.git master
+dep_mongodb = git https://github.com/dvarkin/mongodb-erlang.git command-with-slave-ok
 
 SHELL_DEPS = sync
 

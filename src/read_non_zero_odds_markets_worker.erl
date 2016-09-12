@@ -21,8 +21,8 @@ start(ConnectionArgs, Time, SleepTimer) ->
 init(_init_Args) ->
     undefined.
 
-job({MasterConn, _}, State) ->
-    {ok, query(MasterConn), State}.
+job({_, SlaveConn}, State) ->
+    {ok, query(SlaveConn), State}.
 
 query(Connection) ->
     fun() ->

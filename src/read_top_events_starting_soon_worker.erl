@@ -58,6 +58,6 @@ query(Connection, #{query_limit := Limit, max_start_date := MaxStartDate}) ->
             ]
         },
 
-        Response = mc_worker_api:command(Connection, Command),
+        Response = mc_worker_api:command(Connection, Command, true),
         util:parse_command_response(Response)
     end.

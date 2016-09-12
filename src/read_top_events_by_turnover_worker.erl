@@ -26,13 +26,13 @@ init(_Init_Args) ->
         branch_ids => []
     }.
 
-job({MasterConn, _SlaveConn} = Conns, #{branch_ids := []} = State) ->
-    BranchIds = get_branch_ids(MasterConn),
+job({_MasterConn, SlaveConn} = Conns, #{branch_ids := []} = State) ->
+    BranchIds = get_branch_ids(SlaveConn),
     job(Conns, State#{branch_ids := BranchIds});
 
-job({MasterConn, _SlaveConn}, #{branch_ids := BranchIds, query_limit := Limit} = State) ->
+job({_MasterConn, SlaveConn}, #{branch_ids := BranchIds, query_limit := Limit} = State) ->
     BranchId = util:rand_nth(BranchIds),
-    {ok, query(MasterConn, BranchId, Limit), State}.
+    {ok, query(SlaveConn, BranchId, Limit), State}.
 
 %%%===================================================================
 %%% Internal functions
@@ -49,7 +49,7 @@ query(Connection, BranchId, Limit) ->
             ]
         },
 
-        Response = mc_worker_api:command(Connection, Command),
+        Response = mc_worker_api:command(Connection, Command, true),
         util:parse_command_response(Response)
     end.
 
