@@ -22,12 +22,18 @@ start() ->
     {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
     start(RawArgs, 5000, 1000).
     
+-spec start(ConnectionArgs :: list(), Time :: pos_integer(), SleepTimer :: pos_integer() | undefined) -> {ok, pid()}.    
 
 start(ConnectionArgs, Time, SleepTimer) -> 
     gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
 
+-spec init(list()) -> {ok, term()}.
+
 init(_Init_Args) ->
     {ok, undefined_state}.
+
+-spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
+                                                                                         | {ok, undefined, term()}.
 
 job({Connection, _}, State) ->
     case meta_storage:get_random_market() of

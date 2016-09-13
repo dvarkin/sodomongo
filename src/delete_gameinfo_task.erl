@@ -1,113 +1,67 @@
 -module(delete_gameinfo_task).
+
+-behaviour(gen_worker).
+
 -include("generator.hrl").
 
--export([run/1]).
+%% API
+-export([start/3, start/0]).
 
--define(TASK_SLEEP, 1000).
 
--define(GAMEINFO_METRICS, <<(atom_to_binary(?MODULE, utf8))/binary, "_metrics">>).
--define(MARKETINFO_METRICS, <<"delete_marketinfo_task_metrics">>).
+%% gen_worker behaviour API
 
--define(GAMEINFO_RATE, <<?GAMEINFO_METRICS/binary, ".rate">>).
--define(GAMEINFO_TIME, <<?GAMEINFO_METRICS/binary, ".time">>).
--define(GAMEINFO_DOC_COUNT, <<?GAMEINFO_METRICS/binary, ".documents_count">>).
--define(GAMEINFO_OPERATIONS, <<?GAMEINFO_METRICS/binary, ".operations">>).
--define(GAMEINFO_OPERATIONS_TOTAL, <<?GAMEINFO_OPERATIONS/binary, ".total">>).
--define(GAMEINFO_OPERATIONS_ERR, <<?GAMEINFO_OPERATIONS/binary, ".err">>).
--define(GAMEINFO_OPERATIONS_SUC, <<?GAMEINFO_OPERATIONS/binary, ".suc">>).
+-export([init_metrics/0, job/2, init/1]).
 
--define(MARKETINFO_RATE, <<?MARKETINFO_METRICS/binary, ".rate">>).
--define(MARKETINFO_TIME, <<?MARKETINFO_METRICS/binary, ".time">>).
--define(MARKETINFO_DOC_COUNT, <<?MARKETINFO_METRICS/binary, ".documents_count">>).
--define(MARKETINFO_OPERATIONS, <<?MARKETINFO_METRICS/binary, ".operations">>).
--define(MARKETINFO_OPERATIONS_TOTAL, <<?MARKETINFO_OPERATIONS/binary, ".total">>).
--define(MARKETINFO_OPERATIONS_ERR, <<?MARKETINFO_OPERATIONS/binary, ".err">>).%%%===================================================================
--define(MARKETINFO_OPERATIONS_SUC, <<?MARKETINFO_OPERATIONS/binary, ".suc">>).%%% API
+init_metrics() ->
+    gen_worker:init_metrics(?MODULE).
+
+%%%===================================================================
+%%% API
 %%%===================================================================
 
-run(Connection) ->
+start() ->
+    {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
+    start(RawArgs, 5000, 1000).
     
-    %% init metrics
-    metrics:create(meter, ?GAMEINFO_RATE),
-    metrics:create(histogram, ?GAMEINFO_TIME),
-    metrics:create(histogram, ?GAMEINFO_DOC_COUNT),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_TOTAL),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_ERR),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_SUC),
+-spec start(ConnectionArgs :: list(), Time :: pos_integer(), SleepTimer :: pos_integer() | undefined) -> {ok, pid()}.    
 
-    metrics:create(meter, ?MARKETINFO_RATE),
-    metrics:create(histogram, ?MARKETINFO_TIME),
-    metrics:create(histogram, ?MARKETINFO_DOC_COUNT),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_TOTAL),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_ERR),
-    metrics:create(counter, ?GAMEINFO_OPERATIONS_SUC),
+start(ConnectionArgs, Time, SleepTimer) -> 
+    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
 
-    %% Main task
-    job(Connection).
+-spec init(list()) -> {ok, term()}.
 
-job(Connection) ->
-        case meta_storage:get_random_game() of
-            GameId when is_integer(GameId) ->
-                MarketIds = meta_storage:get_market_ids(GameId),
-                meta_storage:delete_game(GameId),
-                delete_gameinfo(Connection, GameId),
-                delete_marketinfo(Connection, MarketIds);
-            _ -> emtpy_meta_storage
-        end,
+init(_Init_Args) ->
+    {ok, undefined_state}.
 
-    timer:sleep(?TASK_SLEEP),
+-spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
+                                                                                         | {ok, undefined, term()}.
 
-    job(Connection).
+job({Connection, _}, State) ->
+    job(meta_storage:get_random_game(), Connection, State).
 
-delete_gameinfo(Connection, GameId) ->
-    Response = profiler:prof(?GAMEINFO_TIME,
-        fun() ->
-            mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId})
-        end),
-    case Response of
-        {false, _} ->
-            begin
-                error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]),
-                metrics:notify({?GAMEINFO_OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            begin
-                error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]),
-                metrics:notify({?GAMEINFO_OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true,  #{ <<"n">> := N }} ->
-            begin
-                metrics:notify({?GAMEINFO_DOC_COUNT, N}),
-                metrics:notify({?GAMEINFO_OPERATIONS_SUC, {inc, 1}})
-            end
-    end,
-    metrics:notify({?GAMEINFO_RATE, 1}),
-    metrics:notify({?GAMEINFO_OPERATIONS_TOTAL, {inc, 1}}).
+job(GameId, Connection, State) when is_integer(GameId) ->
+    meta_storage:delete_game(GameId),
+    {ok, delete(Connection, GameId), State};
+job(_, _, State) ->
+    {ok, undefined, State}.
+    
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
 
-delete_marketinfo(_Connection, []) ->
-    ok;
-delete_marketinfo(Connection, [MarketId | MarketIds]) ->
-    Response = profiler:prof(?MARKETINFO_TIME,
-        fun() ->
-            mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => MarketId})
-        end),
-    case Response of
-        {false, _} ->
-            begin
-                error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, response: ~p~n", [?MODULE, Response]),
-                metrics:notify({?MARKETINFO_OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true, #{ <<"writeErrors">> := WriteErrors}} ->
-            begin
-                error_logger:error_msg("Can't insert MarketInfo in module: ~p~n, error: ~p~n", [?MODULE, WriteErrors]),
-                metrics:notify({?MARKETINFO_OPERATIONS_ERR, {inc, 1}})
-            end;
-        {true,  #{ <<"n">> := N }} ->
-            begin
-                metrics:notify({?GAMEINFO_DOC_COUNT, N}),
-                metrics:notify({?GAMEINFO_OPERATIONS_SUC, {inc, 1}})
-            end
-    end,
-    metrics:notify({?MARKETINFO_RATE, 1}),
-    metrics:notify({?MARKETINFO_OPERATIONS_TOTAL, {inc, 1}}),
-    delete_gameinfo(Connection, MarketIds).
+delete(Connection, GameId) ->
+    fun() ->
+            Response = mc_worker_api:delete(Connection, ?GAMEINFO, #{?ID => GameId}),
+            parse_response(Response)
+    end.
+
+parse_response({{false, _}, _Data} = Response) ->
+    #{status => error, response => Response};
+parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
+    #{status => error, response => Response};
+parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
+    #{status => success, doc_count => N, response => Response};
+parse_response(Response) ->
+    error_logger:error_msg("Unparsed response ~p", [Response]),
+    #{status => error, response => Response}.
+

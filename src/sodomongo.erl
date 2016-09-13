@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/3, init_sharded_test/1]).
+-export([start/0, start_deps/0, start_test/3, init_sharded_test/1, test_c/2]).
 
 -include("generator.hrl").
 
@@ -76,3 +76,15 @@ start_test(InsertWorkers, UpdateWorkers, Time) ->
 %% start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, Time) ->
 %%     start_test(Db, InsertWorkers, UpdateWorkers, DeleteWorkers, 1, read_live_gameinfo_by_branch_task, Time).
 
+
+
+%% test_c(Collection, Query) ->
+%%     ConnectionArgs = mongo:conn_args(),
+%%     error_logger:info_msg("Args: ~p", [ConnectionArgs]),
+%%     {ok, MasterConn} = mongo:connect_to_master(ConnectionArgs),
+%%     {ok, SecConn} = mongo:connect_to_secondary(ConnectionArgs),
+%%     MR = mc_worker_api:find_one(MasterConn, Collection, Query),
+%%     SR = mc_worker_api:find_one(SecConn, Collection, Query),
+%%     {MR, SR}.
+    
+    

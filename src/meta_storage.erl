@@ -10,6 +10,7 @@
 -export([insert_game/4, 
          get_random_game/0,
          delete_game/1,
+         delete_market/1,
          get_market_ids/1, 
          get_selections/1, 
          get_random_market_id/0, 
@@ -51,6 +52,8 @@ get_selections(MarketId) ->
 delete_game(GameId) ->
   gen_server:cast(?SERVER, {delete_game, GameId}).
 
+delete_market(MarketId) ->
+  gen_server:cast(?SERVER, {delete_market, MarketId}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -141,11 +144,14 @@ handle_cast({insert_game, GameId, MarketIds, Selections, NewMarkets}, #state{gam
     Game_Info_Tab1 = maps:put(GameId, MarketIds, Game_Info_Tab),
     {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1, markets = lists:merge(NewMarkets, Markets)}};
 
-handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, selection_tab = Selection_Tab} = State) ->
-    MarketIds = maps:get(GameId, Game_Info_Tab),
+handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab} = State) ->
     Game_Info_Tab1 = maps:remove(GameId, Game_Info_Tab),
-    Selection_Tab1 = maps:without(MarketIds, Selection_Tab),
-    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1}};
+    {noreply, State#state{game_info_tab = Game_Info_Tab1}};
+
+handle_cast({delete_market, MarketId}, #state{selection_tab = Selection_Tab} = State) ->
+    Selection_Tab1 = maps:remove(MarketId, Selection_Tab),
+    {noreply, State#state{selection_tab = Selection_Tab1}};
+
 handle_cast(_Request, State) ->
     {noreply, State}.
 
