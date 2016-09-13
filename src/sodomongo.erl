@@ -104,7 +104,7 @@ start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, Time) ->
     hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time, 1000),
     hugin:start_job(delete_gameinfo_task, DeleteWorkers, Time, 100),
 
-    hugin:start_job(read_branches_with_active_games_worker, ReadWorkers, Time, 500),
+%    hugin:start_job(read_branches_with_active_games_worker, ReadWorkers, Time, 500),
     hugin:start_job(read_leagues_by_branch_with_number_of_games_in_active_state_worker, ReadWorkers, Time, 500),
     hugin:start_job(read_live_gameinfo_by_branch_worker, ReadWorkers, Time, 500),
     hugin:start_job(read_non_zero_odds_markets_worker, ReadWorkers, Time, 500),
