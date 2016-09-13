@@ -51,5 +51,5 @@ connect_to_master(#{ master := MasterConnArgs }) ->
     mc_worker_api:connect(MasterConnArgs).
 
 connect_to_secondary(#{ secondaries := SecondariesConnArgs }) ->
-    ConnArgs = [{r_mode, slave_ok} | SecondariesConnArgs],
+    ConnArgs = [{r_mode, slave_ok} | util:rand_nth(SecondariesConnArgs)],
     mc_worker_api:connect(ConnArgs).
