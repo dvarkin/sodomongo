@@ -39,9 +39,9 @@ init(_Init_Args) ->
 job({Connection, _}, State) ->
     job(meta_storage:get_random_game(), Connection, State).
 
-job(GameId, Connection, State) when is_integer(GameId) ->
-    meta_storage:delete_game(GameId),
-    {ok, delete(Connection, GameId), State};
+job(Id, Connection, State) when is_integer(Id) ->
+    meta_storage:delete_game(Id),
+    {ok, delete(Connection, Id), State};
 job(_, _, State) ->
     {ok, undefined, State}.
     

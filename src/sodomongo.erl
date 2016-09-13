@@ -98,7 +98,7 @@ start_test(InsertWorkers, UpdateWorkers, ReadWorkers, Time) ->
     init_metrics(),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time, 1000),
     hugin:start_job(insert_marketinfo_task, InsertWorkers, Time, 10),
-    %hugin:start_job(delete_gameinfo_task, InsertWorkers, Time, 1200),
+    hugin:start_job(delete_gameinfo_task, InsertWorkers, Time, 2000),
     hugin:start_job(delete_marketinfo_task, InsertWorkers, Time, 20),
 
     hugin:start_job(update_odd_task, UpdateWorkers, Time, 10),
