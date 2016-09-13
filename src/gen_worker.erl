@@ -53,8 +53,8 @@ start_link(Module, Args, Time, Sleep) ->
 
 init([Module, ConnectionArgs, Time, Sleep] = Args) ->
     self() ! connect,
-    timer:kill_after(Time),
-    %timer:apply_after(Time, gen_server, stop, [self()]),
+    %timer:kill_after(Time),
+    timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     Module_State = Module:init(Args),
     {ok, #state{connection_args = ConnectionArgs, 
