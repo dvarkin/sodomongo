@@ -20,13 +20,15 @@ init_metrics() ->
 %%%===================================================================
 
 start() ->
-    {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
+    RawArgs = mongo:conn_args(),
     start(RawArgs, 5000, 1000).
 
 -spec start(ConnectionArgs :: list(), Time :: pos_integer(), SleepTimer :: pos_integer() | undefined) -> {ok, pid()}.    
 
 start(ConnectionArgs, Time, SleepTimer) -> 
     gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
+
+-spec init(list()) -> {ok, term()}.
 
 init(_Init_Args) ->
     {ok, undefined_state}.

@@ -61,6 +61,8 @@ parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response
     #{status => error, response => Response};
 parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
     #{status => success, doc_count => N, response => Response};
+parse_response({true, #{ <<"n">> := N }} = Response) ->
+    #{status => success, doc_count => N, response => Response};
 parse_response(Response) ->
     error_logger:error_msg("Unparsed response ~p", [Response]),
     #{status => error, response => Response}.
