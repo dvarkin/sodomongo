@@ -36,18 +36,19 @@ init(_Init_Args) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, State) ->
-    case meta_storage:get_random_market() of
-        {MarketId, SelectionIds} ->
-            SelectionId = generator:rand_nth(SelectionIds),
-            {ok, update_odd(Connection, MarketId, SelectionId), State};
-        _ -> 
-            {ok, undefined, State}
-    end.
+    job( meta_storage:get_random_market_id(), Connection, State).
+
+job({MarketId, SelectionIds}, Connection, State) ->
+    SelectionId = util:rand_nth(SelectionIds),
+    NewOdd = generator:new_odd(),
+    {ok, update_odd(Connection, MarketId, SelectionId, NewOdd), State};
+job(_, _, State) ->
+    {ok, undefined, State}.
         
-update_odd(Connection, MarketId, SelectionId) ->
+update_odd(Connection, MarketId, SelectionId, NewOdd) ->
     fun() ->
             Query = #{?ID => MarketId, <<"Selections.ID">> => SelectionId},
-            Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => generator:new_odd()}},
+            Command = #{<<"$set">> => #{ <<"Selections.$.Odds">> => NewOdd}},
             Response = mc_worker_api:update(Connection, ?MARKETINFO, Query, Command),
             parse_response(Response)
     end.
@@ -62,6 +63,8 @@ parse_response({{false, _}, _Data} = Response) ->
 parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
     #{status => error, response => Response};
 parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
+    #{status => success, doc_count => N, response => Response};
+parse_response({true, #{ <<"n">> := N }} = Response) ->
     #{status => success, doc_count => N, response => Response};
 parse_response(Response) ->
     error_logger:error_msg("Unparsed response ~p", [Response]),
