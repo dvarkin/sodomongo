@@ -113,5 +113,3 @@ start_worker(N, ConnectionArgs, Task_Module, Time, Sleep) when N > 0 ->
 		  timer:sleep(N * 25),
 		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [ConnectionArgs, Time, Sleep])
 	  end).
-    
-    
