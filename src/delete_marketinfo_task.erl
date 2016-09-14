@@ -39,7 +39,7 @@ init(_Init_Args) ->
 job({Connection, _}, State) ->
     job(meta_storage:get_random_market_id(), Connection, State).
 
-job(Id, Connection, State) when is_integer(Id) ->
+job({Id, _}, Connection, State) ->
     meta_storage:delete_market(Id),
     {ok, delete(Connection, Id), State};
 job(_, _, State) ->
@@ -60,6 +60,8 @@ parse_response({{false, _}, _Data} = Response) ->
 parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
     #{status => error, response => Response};
 parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
+    #{status => success, doc_count => N, response => Response};
+parse_response({true, #{ <<"n">> := N }} = Response) ->
     #{status => success, doc_count => N, response => Response};
 parse_response(Response) ->
     error_logger:error_msg("Unparsed response ~p", [Response]),
