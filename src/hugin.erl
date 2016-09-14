@@ -75,14 +75,14 @@ handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
 
 handle_cast({worker_monitor, Worker, Task_Module, WorkerState}, #state{workers = Workers} = State) ->
-    erlang:link(Worker),
+%    erlang:link(Worker),
     {noreply, State#state{workers = Workers#{Worker => #{state => WorkerState, task => Task_Module}}}};
 
 handle_cast({worker_state, Worker, Task_Module, WorkerState}, #state{workers = Workers} = State) ->
     {noreply, State#state{workers = Workers#{Worker := #{state => WorkerState, task => Task_Module}}}};
 
 handle_cast({worker_terminate, Worker}, #state{workers = Workers} = State) ->
-    erlang:unlink(Worker),
+ %   erlang:unlink(Worker),
     W = maps:remove(Worker, Workers),
     {noreply, State#state{workers = W}}.
 
@@ -97,7 +97,8 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-	ok.
+    error_logger:error_msg("Hugin terminated ~p", [_Reason]),
+    ok.
 
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
