@@ -37,13 +37,13 @@ init(_Init_Args) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, State) ->
-    {GameInfo, _} = meta_storage:new_game_with_markets(),
-    job(GameInfo, Connection, State).
+    GameWithMarkets = meta_storage:new_game_with_markets(),
+    job(GameWithMarkets, Connection, State).
 
 
 job(undefined, _, State) ->
     {ok, undefined, State};
-job(GameInfo, Connection, State) ->
+job({GameInfo, _}, Connection, State) ->
     {ok, insert(Connection, GameInfo), State}.
 
 %%%===================================================================

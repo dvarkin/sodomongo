@@ -28,7 +28,7 @@
   code_change/3]).
 
 -define(SERVER, {global, ?MODULE}).
--define(POOL_SIZE, 1).
+-define(POOL_SIZE, 1000).
 
 -record(state, {game_info_tab = #{}, selection_tab = #{}, markets = [], games_pool = #{}, games_storage = #{}}).
 
