@@ -31,18 +31,20 @@ start(ConnectionArgs, Time, SleepTimer) ->
 -spec init(list()) -> {ok, term()}.
 
 init(_Init_Args) ->
-    {ok, undefined_state}.
-
+    [].
 
 -spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
                                                                                          | {ok, undefined, term()}.
-job({Connection, _}, State) ->
-    case meta_storage:get_random_market() of 
-        undefined ->
-            {ok, undefined, State};
-        Market ->
-            {ok, insert(Connection, Market), State}
+job({Connection, _}, [Market| Markets] ) ->
+    {ok, insert(Connection, Market), Markets};
+job({Connection, _}, []) ->
+    case meta_storage:pull_all_markets() of
+        [Market | Markets] ->
+            {ok, insert(Connection, Market), Markets};
+        _ -> 
+            {ok, undefined, []}
     end.
+
 
 %%%===================================================================
 %%% Internal functions

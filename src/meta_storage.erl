@@ -14,7 +14,7 @@
          get_market_ids/1, 
          get_selections/1, 
          get_random_market_id/0, 
-         get_random_market/0]).
+         pull_all_markets/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -40,8 +40,8 @@ get_random_game() ->
 get_random_market_id() ->
     gen_server:call(?SERVER, get_random_market_id).
 
-get_random_market() ->
-    gen_server:call(?SERVER, get_random_market).
+pull_all_markets() ->
+    gen_server:call(?SERVER, pull_all_markets).
 
 get_market_ids(GameId) ->
     gen_server:call(?SERVER, {get_market_ids, GameId}).
@@ -106,9 +106,8 @@ init([]) ->
 handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     GameId = util:rand_nth(maps:keys(Game_Info_Tab)),
     {reply, GameId, State};
-handle_call(get_random_market, _From, #state{markets = Markets} = State) ->
-    Market = util:rand_nth(Markets),
-    {reply, Market, State#state{markets = lists:delete(Market, Markets)}};
+handle_call(pull_all_markets, _From, #state{markets = Markets} = State) ->
+    {reply, Markets, State#state{markets = []}};
 handle_call({get_market_ids, GameId}, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     MarketIds = maps:get(GameId, Game_Info_Tab),
     {reply, MarketIds, State };

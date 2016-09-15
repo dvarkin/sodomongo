@@ -46,9 +46,9 @@ start([]) ->
     fallback(Nodes);
 
 start(Nodes) ->
-    error_logger:info_msg("Slave nodes: ", [Nodes]).
+    error_logger:info_msg("Slave nodes: ~p", [Nodes]).
 
 fallback([]) ->
     start();
 fallback(Nodes) ->
-    error_logger:info_msg("Slave nodes: ", [Nodes]).
+    error_logger:info_msg("Slave nodes: ~p", [Nodes]).
