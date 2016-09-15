@@ -22,6 +22,9 @@ start_deps() ->
 
 
 init_sharded_test(Db) ->
+    kinder_mertics:init(),
+    timer:apply_interval(30000, kinder_metrics, nofity, []),
+
     {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
     ConnectionArgs = lists:keyreplace(database, 1, RawArgs,{database, Db}),
     AdminConnectionArgs = lists:keyreplace(database, 1, ConnectionArgs, {database, <<"admin">>}),

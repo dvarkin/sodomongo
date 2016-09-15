@@ -19,13 +19,11 @@ collect() ->
   TotalWorkers = length(Workers),
   Inc = fun(V) -> V + 1 end,
   WorkersCountByStatus = lists:foldl(fun({State, _}, Acc) -> maps:update_with(State, Inc, Acc) end, ?INITIAL_STATUS_STAT, Workers),
-  WorkersCountByJob = lists:foldl(fun({_, Task}, Acc) -> maps:update_with(Task, Inc, 1, Acc) end, #{}, Workers),
-  {maps:put('TOTAL', TotalWorkers, WorkersCountByStatus), maps:without([undefined], WorkersCountByJob)}.
+  maps:put('TOTAL', TotalWorkers, WorkersCountByStatus).
 
 notify() ->
-  {ByStatus, ByJob} = collect(),
-  [metrics:notify({status_gauge_name(Status), Count}) || {Status, Count} <- maps:to_list(ByStatus)],
-  [metrics:notify({job_gauge_name(Job), Count}) || {Job, Count} <- maps:to_list(ByJob)].
+  ByStatus = collect(),
+  [metrics:notify({status_gauge_name(Status), Count}) || {Status, Count} <- maps:to_list(ByStatus)].
 
 init() ->
   [metrics:create(gauge, status_gauge_name(Status)) || Status <- maps:keys(?INITIAL_STATUS_STAT)].
