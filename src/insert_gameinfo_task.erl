@@ -37,8 +37,13 @@ init(_Init_Args) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, State) ->
-    {GameInfo, Markets, GameId, MarketIds, SelectionIds} = generate_data(),
-    meta_storage:insert_game(GameId, MarketIds, SelectionIds, Markets),
+    {GameInfo, _} = meta_storage:new_game_with_markets(),
+    job(GameInfo, Connection, State).
+
+
+job(undefined, _, State) ->
+    {ok, undefined, State};
+job(GameInfo, Connection, State) ->
     {ok, insert(Connection, GameInfo), State}.
 
 %%%===================================================================
@@ -50,13 +55,6 @@ insert(Connection, GameInfo) ->
             Response =  mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo),
             parse_response(Response)
     end.
-
-generate_data() ->
-    {GameInfo, Markets} = generator:new_game_with_markets(),
-    #{?ID := GameId} = GameInfo,
-    MarketIds = [Id || #{?ID := Id} <- Markets],
-    SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
-    {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
 
 parse_response({{false, _}, _Data} = Response) ->
     #{status => error, response => Response};

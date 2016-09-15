@@ -10,7 +10,7 @@
 -author("serhiinechyporhuk").
 
 %% API
--export([rand_nth/1, parse_find_response/1, parse_command_response/1, timestamp_with_offset/2]).
+-export([rand_nth/1, parse_find_response/1, parse_command_response/1, timestamp_with_offset/2, rand_kv/1]).
 
 rand_nth([H|[]]) -> H;
 
@@ -20,6 +20,16 @@ rand_nth([_|_] = List) ->
 
 rand_nth(_) ->
     undefined.
+
+rand_kv(undefined, undefined) -> undefined;
+rand_kv(Key, Value) -> {Key, Value}.
+
+rand_kv(Map) ->
+    Key = rand_nth(maps:keys(Map)),
+    Value = maps:get(Key, Map, undefined),
+    rand_kv(Key, Value).
+
+
 
 parse_find_response(Cursor) ->
     Data = mc_cursor:rest(Cursor),

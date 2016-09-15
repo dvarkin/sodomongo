@@ -4,17 +4,20 @@
 -behaviour(gen_server).
 
 -include("meta_storage.hrl").
+-include("generator.hrl").
 
 %% API
 -export([start_link/0]).
--export([insert_game/4, 
-         get_random_game/0,
-         delete_game/1,
-         delete_market/1,
-         get_market_ids/1, 
-         get_selections/1, 
-         get_random_market_id/0, 
-         pull_all_markets/0]).
+-export([get_pool/0,
+    get_storage/0,
+    get_random_game/0,
+    delete_game/1,
+    delete_market/1,
+    get_market_ids/1,
+    get_selections/1,
+    get_random_market_id/0,
+    pull_all_markets/0,
+    new_game_with_markets/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -25,14 +28,21 @@
   code_change/3]).
 
 -define(SERVER, {global, ?MODULE}).
+-define(POOL_SIZE, 1).
 
--record(state, {game_info_tab = #{}, selection_tab = #{}, markets = []}).
+-record(state, {game_info_tab = #{}, selection_tab = #{}, markets = [], games_pool = #{}, games_storage = #{}}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-insert_game(GameId, MarketIds, SelectionIds, Markets) ->
-  gen_server:cast(?SERVER, {insert_game, GameId, MarketIds, SelectionIds, Markets}).
+get_pool() ->
+    gen_server:call(?SERVER, get_pool).
+
+get_storage() ->
+    gen_server:call(?SERVER, get_storage).
+
+new_game_with_markets() ->
+    gen_server:call(?SERVER, new_game_with_markets).
 
 get_random_game() ->
   gen_server:call(?SERVER, get_random_game).
@@ -85,7 +95,10 @@ start_link() ->
   {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term()} | ignore).
 init([]) ->
-    {ok, #state{}}.
+    GamesWithMarkets = [generator:new_game_with_markets() || _ <- lists:seq(1, ?POOL_SIZE)],
+    GamesWithMarketsPool = [{GameId, {Game, Markets}} || {#{?ID := GameId} = Game, Markets} <- GamesWithMarkets],
+    GamesWithMarketsPoolMap = maps:from_list(GamesWithMarketsPool),
+    {ok, #state{games_pool = GamesWithMarketsPoolMap}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -103,6 +116,13 @@ init([]) ->
   {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
   {stop, Reason :: term(), NewState :: #state{}}).
 
+handle_call(get_pool, _From, State) ->
+    {reply, State#state.games_pool, State};
+handle_call(get_storage, _From, State) ->
+    {reply, State#state.games_storage, State};
+handle_call(new_game_with_markets, _From, #state{games_pool = Pool} = State) ->
+    {GameWithMarkets, NewState} = insert_pool_item(util:rand_kv(Pool), State),
+    {reply, GameWithMarkets, NewState};
 handle_call(get_random_game, _From, #state{game_info_tab = Game_Info_Tab} = State) ->
     GameId = util:rand_nth(maps:keys(Game_Info_Tab)),
     {reply, GameId, State};
@@ -137,15 +157,12 @@ handle_call(_Request, _From, State) ->
   {noreply, NewState :: #state{}} |
   {noreply, NewState :: #state{}, timeout() | hibernate} |
   {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({insert_game, GameId, MarketIds, Selections, NewMarkets}, #state{game_info_tab=Game_Info_Tab, selection_tab=Selection_Tab, markets = Markets} = State) ->
-    S1 = maps:from_list(Selections),
-    Selection_Tab1 = maps:merge(S1, Selection_Tab),
-    Game_Info_Tab1 = maps:put(GameId, MarketIds, Game_Info_Tab),
-    {noreply, State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1, markets = lists:merge(NewMarkets, Markets)}};
-
-handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab} = State) ->
+handle_cast({delete_game, GameId}, #state{game_info_tab = Game_Info_Tab, games_pool = Pool, games_storage = Storage} = State) ->
     Game_Info_Tab1 = maps:remove(GameId, Game_Info_Tab),
-    {noreply, State#state{game_info_tab = Game_Info_Tab1}};
+    PoolEntry = maps:get(GameId, Storage),
+    Storage1 = maps:without([GameId], Storage),
+    Pool1 = maps:put(GameId, PoolEntry, Pool),
+    {noreply, State#state{game_info_tab = Game_Info_Tab1, games_pool = Pool1, games_storage = Storage1}};
 
 handle_cast({delete_market, MarketId}, #state{selection_tab = Selection_Tab} = State) ->
     Selection_Tab1 = maps:remove(MarketId, Selection_Tab),
@@ -204,4 +221,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+insert_pool_item(undefined, State) ->
+    {undefined, State};
+insert_pool_item(PoolItem, State) ->
+    {GameId, {GameInfo, Markets}} = PoolItem,
+    MarketIds = [Id || #{?ID := Id} <- Markets],
+    SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
+    NewState = insert_game(GameId, MarketIds, SelectionIds, Markets, State),
+    {{GameInfo, Markets}, NewState}.
 
+insert_game(GameId, MarketIds, SelectionIds, NewMarkets, #state{game_info_tab = GameInfoTab, selection_tab = SelectionTab, markets = Markets, games_pool = Pool, games_storage = Storage} = State) ->
+    S1 = maps:from_list(SelectionIds),
+    Selection_Tab1 = maps:merge(S1, SelectionTab),
+    Game_Info_Tab1 = maps:put(GameId, MarketIds, GameInfoTab),
+    PoolEntry = maps:get(GameId, Pool),
+    Pool1 = maps:without([GameId], Pool),
+    Storage1 = maps:put(GameId, PoolEntry, Storage),
+    State#state{game_info_tab = Game_Info_Tab1, selection_tab = Selection_Tab1, markets = lists:merge(NewMarkets, Markets), games_pool = Pool1, games_storage = Storage1}.
+
+% meta_storage:start_link(), meta_storage:new_game_with_markets(), meta_storage:new_game_with_markets(), ok.
+% maps:size(meta_storage:get_pool()).
