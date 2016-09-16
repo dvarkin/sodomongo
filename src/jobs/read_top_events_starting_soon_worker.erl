@@ -3,7 +3,7 @@
 
 -behaviour(gen_worker).
 
--include("generator.hrl").
+-include("../generator.hrl").
 
 -define(QUERY_LIMIT, 10).
 -define(HOUR_IN_SEC, 60 * 60).

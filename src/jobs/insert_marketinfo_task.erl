@@ -2,7 +2,7 @@
 
 -behaviour(gen_worker).
 
--include("generator.hrl").
+-include("../generator.hrl").
 
 %% API
 -export([start/3, start/0]).

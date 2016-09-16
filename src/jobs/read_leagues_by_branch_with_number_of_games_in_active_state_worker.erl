@@ -3,7 +3,7 @@
 
 -behavior(gen_worker).
 
--include("generator.hrl").
+-include("../generator.hrl").
 -define(QUERY_LIMIT, 10).
 
 %% API

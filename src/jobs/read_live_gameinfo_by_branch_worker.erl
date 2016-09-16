@@ -11,7 +11,7 @@
 
 -behavior(gen_worker).
 
--include("generator.hrl").
+-include("../generator.hrl").
 
 %% API
 -export([init_metrics/0, job/2, init/1, start/3]).
