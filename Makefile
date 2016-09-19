@@ -4,7 +4,7 @@ PROJECT_VERSION = 0.0.1
 
 COMPILE_FIRST=gen_worker
 
-DEPS = mongodb folsom folsomite
+DEPS = eredis mongodb folsom folsomite
 
 LOCAL_DEPS = crypto bson mongodb
 

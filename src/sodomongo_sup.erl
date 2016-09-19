@@ -16,14 +16,6 @@ init([]) ->
         type => worker,
         modules => [hugin]
     },
-    MetaStore = #{
-        id => meta_storage,
-        start => {meta_storage, start_link, []},
-        restart => permanent,
-        shutdown => 5000,
-        type => worker,
-        modules => [meta_storage]
-    },
     Metrics = #{
         id => metrics,
         start => {metrics, start_link, []},
@@ -32,5 +24,5 @@ init([]) ->
         type => worker,
         modules => [metrics]
     },
-    Procs = [Metrics, MetaStore, Hugin],
+    Procs = [Metrics, Hugin],
     {ok, {{one_for_one, 100, 500}, Procs}}.

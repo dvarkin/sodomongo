@@ -6,7 +6,8 @@
 -include("meta_storage.hrl").
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
+
 -export([insert_game/4, 
          get_random_game/0,
          delete_game/1,
@@ -26,7 +27,7 @@
 
 -define(SERVER, {global, ?MODULE}).
 
--record(state, {game_info_tab = #{}, selection_tab = #{}, markets = []}).
+-record(state, {redis :: pid(), game_info_tab = #{}, selection_tab = #{}, markets = []}).
 
 %%%===================================================================
 %%% API
@@ -61,10 +62,8 @@ delete_market(MarketId) ->
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link() ->
-  {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link() ->
-  gen_server:start_link(?SERVER, ?MODULE, [], []).
+start_link(Connection) ->
+  gen_server:start_link(?SERVER, ?MODULE, [Connection], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -81,11 +80,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
--spec(init(Args :: term()) ->
-  {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
-  {stop, Reason :: term()} | ignore).
-init([]) ->
-    {ok, #state{}}.
+init([Connection]) ->
+    {ok, #state{redis = Connection}}.
 
 %%--------------------------------------------------------------------
 %% @private

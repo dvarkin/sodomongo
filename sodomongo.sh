@@ -21,6 +21,7 @@ erl -name "${NAME}@${IP}" \
     -pa deps/zeta/ebin/ \
     -pa deps/protobuffs/ebin/ \
     -pa deps/sync/ebin/ \
+    -pa deps/eredis/ebin \
     -pa ebin/ \
     -boot start_sasl \
     -config rel/sys \
