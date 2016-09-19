@@ -4,9 +4,11 @@ PROJECT_VERSION = 0.0.1
 
 COMPILE_FIRST=gen_worker
 
-DEPS = eredis mongodb folsom folsomite
+DEPS =  mongodb folsom folsomite
 
 LOCAL_DEPS = crypto bson mongodb
+
+BUILD_DEPS = eredis
 
 dep_mongodb = git https://github.com/dvarkin/mongodb-erlang.git master
 
