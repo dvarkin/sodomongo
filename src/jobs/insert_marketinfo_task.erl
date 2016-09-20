@@ -5,8 +5,9 @@
 -include("../generator.hrl").
 
 %% API
--export([start/3, start/0]).
+-export([start/1, start/0]).
 
+-record(state, {redis_connection}).
 
 %% gen_worker behaviour API
 
@@ -20,48 +21,53 @@ init_metrics() ->
 %%%===================================================================
 
 start() ->
-    {ok, RawArgs} = application:get_env(sodomongo, mongo_connection),
-    start(RawArgs, 5000, 1000).
+    ConnArgs = mongo:conn_args(),
+    {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
+    start(#{mongo_conn_args => ConnArgs, time => 5000, sleep => 1000, redis_conn_args => RedisArgs}).
 
--spec start(ConnectionArgs :: list(), Time :: pos_integer(), SleepTimer :: pos_integer() | undefined) -> {ok, pid()}.    
+-spec start(map()) -> {ok, pid()}.
 
-start(ConnectionArgs, Time, SleepTimer) -> 
-    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
+start(Args) -> 
+    gen_worker:start_link(?MODULE, Args).
 
 -spec init(list()) -> {ok, term()}.
 
-init(_Init_Args) ->
-    [].
+init(#{redis_conn_args := RedisConnArgs}) ->
+    {ok, RedisConnection} = apply(eredis, start_link, RedisConnArgs),
+    #state{redis_connection =  RedisConnection}.
 
 -spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
                                                                                          | {ok, undefined, term()}.
-job({Connection, _}, [Market| Markets] ) ->
-    {ok, insert(Connection, Market), Markets};
-job({Connection, _}, []) ->
-    case meta_storage:pull_all_markets() of
-        [Market | Markets] ->
-            {ok, insert(Connection, Market), Markets};
-        _ -> 
-            {ok, undefined, []}
+
+job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
+    case meta_storage:markets_size(RedisConnection) of 
+        <<"0">> -> 
+            {ok, undefined, State};
+        _ ->
+            Market = meta_storage:pull_market(RedisConnection),
+            {ok, insert(Connection, Market, RedisConnection), State}
     end.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-insert(Connection, Data) ->
+insert(Connection, Data, RedisConnection) ->
     fun() ->
             Response =  mc_worker_api:insert(Connection, ?MARKETINFO, Data),
-            parse_response(Response)
+            parse_response(Response, RedisConnection)
     end.
 
-parse_response({{false, _}, _Data} = Response) ->
+parse_response({{false, _}, _Data} = Response, _) ->
     #{status => error, response => Response};
-parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
+parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response, _) -> 
     #{status => error, response => Response};
-parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
+parse_response({{true, #{ <<"n">> := N }}, Market} = Response, RedisConnection) ->
+    #{?ID := MarketId, ?SELECTIONS := Selections } = Market,
+    SelectionIds = [Id || #{?ID := Id} <- Selections],
+    meta_storage:insert_market(RedisConnection,  MarketId, SelectionIds),
     #{status => success, doc_count => N, response => Response};
-parse_response(Response) ->
+parse_response(Response,_) ->
     error_logger:error_msg("Unparsed response ~p", [Response]),
     #{status => error, response => Response}.
 

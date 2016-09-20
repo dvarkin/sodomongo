@@ -5,8 +5,9 @@
 -include("../generator.hrl").
 
 %% API
--export([start/3, start/0]).
+-export([start/1, start/0]).
 
+-record(state, {redis_connection}).
 
 %% gen_worker behaviour API
 
@@ -20,25 +21,28 @@ init_metrics() ->
 %%%===================================================================
 
 start() ->
-    RawArgs = mongo:conn_args(),
-    start(RawArgs, 5000, 1000).
+    ConnArgs = mongo:conn_args(),
+    {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
+    start(#{mongo_conn_args => ConnArgs, time => 5000, sleep => 1000, redis_conn_args => RedisArgs}).
 
--spec start(ConnectionArgs :: list(), Time :: pos_integer(), SleepTimer :: pos_integer() | undefined) -> {ok, pid()}.    
 
-start(ConnectionArgs, Time, SleepTimer) -> 
-    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
+-spec start(Args :: map()) -> {ok, pid()}.    
 
--spec init(list()) -> {ok, term()}.
+start(Args) -> 
+    gen_worker:start_link(?MODULE, Args).
 
-init(_Init_Args) ->
-    {ok, undefined_state}.
+-spec init(map()) -> {ok, term()}.
+
+init(#{redis_conn_args := RedisConnArgs} = _Args) ->
+    {ok, RedisConnection} = apply(eredis, start_link, RedisConnArgs),
+    #state{redis_connection = RedisConnection}.
 
 -spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
                                                                                          | {ok, undefined, term()}.
 
-job({Connection, _}, State) ->
-    {GameInfo, Markets, GameId, MarketIds, SelectionIds} = generate_data(),
-    meta_storage:insert_game(GameId, MarketIds, SelectionIds, Markets),
+job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
+    {GameInfo, Markets, GameId, MarketIds} = generate_data(),
+    meta_storage:insert_game(RedisConnection, GameId, MarketIds, Markets),
     {ok, insert(Connection, GameInfo), State}.
 
 %%%===================================================================
@@ -55,8 +59,7 @@ generate_data() ->
     {GameInfo, Markets} = generator:new_game_with_markets(),
     #{?ID := GameId} = GameInfo,
     MarketIds = [Id || #{?ID := Id} <- Markets],
-    SelectionIds = lists:flatten([{MarketId, [SelectionId || #{?ID := SelectionId} <- Selections]} || #{?SELECTIONS := Selections, ?ID := MarketId} <- Markets]),
-    {GameInfo, Markets,GameId, MarketIds, SelectionIds}.
+    {GameInfo, Markets, GameId, MarketIds}.
 
 parse_response({{false, _}, _Data} = Response) ->
     #{status => error, response => Response};

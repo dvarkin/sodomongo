@@ -10,7 +10,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/3, start_link/4, init_metrics/1, start/4]).
+-export([start_link/2, init_metrics/1]).
 
 -type metrics() :: #{ doc_count => pos_integer(),
                       error_reason => any(),
@@ -22,19 +22,17 @@
 -callback init(Args :: list()) -> term().
 -callback job({ReadConnection :: pid(), WriteConnection :: pid()}, State :: term()) ->
     {ok, ActionClosure :: action_closure(), State :: term()}.
--callback start(Args :: list(), Time :: pos_integer(), Sleep :: pos_integer() | undefined) ->
-    {ok, pid()}.
+-callback start(Args :: map()) -> {ok, pid()}.
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
 
-
-
 -define(SERVER, ?MODULE).
 
 -record(state, {connection_args :: map(),
+                redis_conn_args :: [],
                 connections :: { MasterConn :: pid(), SecCon :: pid() },
                 module :: atom(), 
                 time :: pos_integer(), 
@@ -43,15 +41,10 @@
                 module_state :: term()
                }).
 
-start(Module, ConnectionArgs, Time, Sleep) ->
-    start_link(Module, ConnectionArgs, Time, Sleep).
+start_link(Module, Args) ->
+    gen_server:start_link(?MODULE, [Args#{module => Module}], []).
 
-start_link(Module, Args, Time) ->
-    start_link(Module, Args, Time, undefined).
-start_link(Module, Args, Time, Sleep) ->
-    gen_server:start_link(?MODULE, [Module, Args, Time, Sleep], []).
-
-init([Module, ConnectionArgs, Time, Sleep] = Args) ->
+init([#{ module := Module, mongo_conn_args := ConnectionArgs, time := Time, sleep := Sleep, redis_conn_args := _RedisConnArgs} = Args]) ->
     self() ! connect,
     %timer:kill_after(Time),
     timer:apply_after(Time, gen_server, stop, [self()]),

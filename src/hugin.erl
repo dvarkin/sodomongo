@@ -18,7 +18,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {workers = #{}, mongo_conn_args}).
+-record(state, {workers = #{}, mongo_conn_args = [], redis_conn_args = []}).
 
 %% API.
 
@@ -60,15 +60,15 @@ init([]) ->
     %kinder_metrics:init(),
     %{ok, UpdateInterval} = application:get_env(folsomite, flush_interval),
     %timer:apply_interval(UpdateInterval, kinder_metrics, notify, []),
-
+    {ok, RedisConnArgs} = application:get_env(sodomongo, redis_connection),
     ConnArgs = mongo:conn_args(),
-    {ok, #state{mongo_conn_args = ConnArgs}}.
+    {ok, #state{mongo_conn_args = ConnArgs, redis_conn_args = RedisConnArgs}}.
 
 handle_call(workers, _From, #state{workers = Workers} = State) ->
     {reply, Workers, State};
 
-handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_conn_args = ConnectionArgs} = State) ->
-    [start_worker(N ,ConnectionArgs, Task_Module, Time, Sleep) || N <- lists:seq(1, WorkersNum)],
+handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_conn_args = ConnectionArgs, redis_conn_args = RedisConnArgs} = State) ->
+    [start_worker(N , ConnectionArgs, Task_Module, Time, Sleep, RedisConnArgs) || N <- lists:seq(1, WorkersNum)],
     {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
@@ -109,8 +109,11 @@ gen_node() ->
     Nodes = nodes(),
     util:rand_nth(Nodes).
 
-start_worker(N, ConnectionArgs, Task_Module, Time, Sleep) when N > 0 ->
+start_worker(N, ConnectionArgs, Task_Module, Time, Sleep, RedisConnArgs) when N > 0 ->
     spawn(fun() ->
 		  timer:sleep(N * 25),
-		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [ConnectionArgs, Time, Sleep])
+		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [#{mongo_conn_args => ConnectionArgs, 
+                                                                           time => Time,
+                                                                           sleep => Sleep,
+                                                                           redis_conn_args => RedisConnArgs}])
 	  end).

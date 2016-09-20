@@ -1,18 +1,19 @@
 -module(meta_storage).
 
--export([insert_game/5, 
+-export([insert_game/4, 
          insert_market/3,
          delete_game/2,
          delete_market/2,
-         pull_market/1
+         pull_market/1,
+         markets_size/1
         ]).
 
-insert_game(C, GameId, MarketIds, _SelectionIds, Markets) ->
-    eredis:q(C, ["LPUSH", "markets", Markets]),
-    eredis:q(C, ["HSET", "gameinfo", GameId, MarketIds]).
+insert_game(C, GameId, MarketIds, Markets) ->
+    eredis:q(C, ["LPUSH", "markets", [term_to_binary(M) || M <- Markets]]),
+    eredis:q(C, ["HSET", "gameinfo", GameId, term_to_binary(MarketIds)]).
 
 insert_market(C, MarketId, Selections) ->
-    eredis:q(C, ["HSET", "marketinfo", MarketId, Selections]).
+    eredis:q(C, ["HSET", "marketinfo", MarketId, term_to_binary(Selections)]).
 
 delete_game(C, GameId) ->
     eredis:q(C, ["HDEL", "gameinfo", GameId]).
@@ -21,8 +22,16 @@ delete_market(C, MarketId) ->
     eredis:q(C, ["HDEL", "marketinfo", MarketId]).
     
 pull_market(C) ->
-    eredis:q(C, ["RPOP", "markets"]).
+    case eredis:q(C, ["RPOP", "markets"]) of
+        {ok, M} when is_binary(M) ->
+            binary_to_term(M);
+        {ok, Result} -> 
+            Result
+    end.
 
+markets_size(C) ->
+    {ok, Size} = eredis:q(C, ["LLEN", "markets"]),
+    Size.
     
 %% get_random_game() ->
 
