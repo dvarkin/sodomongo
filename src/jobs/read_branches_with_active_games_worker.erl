@@ -10,7 +10,7 @@
 
 %% API
 
--export([init_metrics/0, job/2, init/1, start/3]).
+-export([init_metrics/0, job/2, init/1, start/1]).
 
 init_metrics() ->
     gen_worker:init_metrics(?MODULE).
@@ -19,11 +19,11 @@ init_metrics() ->
 %%% API
 %%%===================================================================
 
-start(ConnectionArgs, Time, SleepTimer) ->
-    gen_worker:start(?MODULE, ConnectionArgs, Time, SleepTimer).
+start(Args) ->
+    gen_worker:start_link(?MODULE, Args).
 
-init(_Init_Args) ->
-    undefined.
+init(_Args) ->
+   undefined.
 
 job({_MasterConn, SlaveConn}, State) ->
     {ok, query(SlaveConn), State}.
