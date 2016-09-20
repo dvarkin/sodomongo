@@ -53,7 +53,7 @@ handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({notify, Arg}, State) ->
-    spawn(fun() -> folsom_metrics:notify(Arg) end),
+    folsom_metrics:notify(Arg),
     {noreply, State};
 
 handle_cast({create, counter, Name}, State) ->
