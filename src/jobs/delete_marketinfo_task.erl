@@ -1,4 +1,4 @@
--module(insert_marketinfo_task).
+-module(delete_marketinfo_task).
 
 -behaviour(gen_worker).
 
@@ -8,6 +8,7 @@
 -export([start/1, start/0]).
 
 -record(state, {redis_connection}).
+
 
 %% gen_worker behaviour API
 
@@ -19,7 +20,6 @@ init_metrics() ->
 %%%===================================================================
 %%% API
 %%%===================================================================
-
 start() ->
     ConnArgs = mongo:conn_args(),
     {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
@@ -40,34 +40,32 @@ init(#{redis_conn_args := RedisConnArgs}) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
-    case meta_storage:pull_market(RedisConnection) of 
-        undefined -> 
-            {ok, undefined, State};
-        Market ->
-            {ok, insert(Connection, Market, RedisConnection), State}
-    end.
+    job(meta_storage:delete_market(RedisConnection), Connection, State).
 
+job(undefined, _, State) ->
+    {ok, undefined, State};
+
+job(Id, Connection, State) ->
+    {ok, delete(Connection, Id), State}.
+    
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-insert(Connection, Data, RedisConnection) ->
+delete(Connection, Id) ->
     fun() ->
-            Response =  mc_worker_api:insert(Connection, ?MARKETINFO, Data),
-            parse_response(Response, RedisConnection)
+            Response = mc_worker_api:delete(Connection, ?MARKETINFO, #{?ID => Id}),
+            parse_response(Response)
     end.
 
-parse_response({{false, _}, _Data} = Response, _) ->
+parse_response({{false, _}, _Data} = Response) ->
     #{status => error, response => Response};
-parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response, _) -> 
+parse_response({{true, #{ <<"writeErrors">> := _WriteErrors}}, _Data} = Response) -> 
     #{status => error, response => Response};
-parse_response({{true, #{ <<"n">> := N }}, Market} = Response, RedisConnection) ->
-    #{?ID := MarketId, ?SELECTIONS := Selections } = Market,
-    SelectionIds = [Id || #{?ID := Id} <- Selections],
-    meta_storage:insert_market(RedisConnection,  MarketId, SelectionIds),
+parse_response({{true, #{ <<"n">> := N }}, _Data} = Response) ->
     #{status => success, doc_count => N, response => Response};
-parse_response(Response,_) ->
+parse_response({true, #{ <<"n">> := N }} = Response) ->
+    #{status => success, doc_count => N, response => Response};
+parse_response(Response) ->
     error_logger:error_msg("Unparsed response ~p", [Response]),
     #{status => error, response => Response}.
-
-

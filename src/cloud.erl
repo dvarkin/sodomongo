@@ -24,7 +24,7 @@ make_args(Dir) ->
         "/deps/folsomite/ebin",
         "/deps/zeta/ebin",
         "/deps/protobuffs/ebin",
-        "deps/eredis/ebin",
+        "/deps/eredis/ebin",
         "/deps/sync/ebin"
     ],
     DirDeps = string:join([" -pa " ++ Dir ++ D || D <- Deps], ""),

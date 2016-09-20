@@ -1,38 +1,63 @@
 -module(meta_storage).
 
+-define(GAMEINFO, "gameinfo").
+-define(MARKETS, "markets").
+-define(MARKETS_FOR_INSERT, "markets_for_insert").
+
 -export([insert_game/4, 
          insert_market/3,
-         delete_game/2,
-         delete_market/2,
+         delete_game/1,
+         delete_market/1,
          pull_market/1,
-         markets_size/1
+         get_random_market/1,
+         flush/0
         ]).
 
-insert_game(C, GameId, MarketIds, Markets) ->
-    eredis:q(C, ["LPUSH", "markets", [term_to_binary(M) || M <- Markets]]),
-    eredis:q(C, ["HSET", "gameinfo", GameId, term_to_binary(MarketIds)]).
+flush() ->
+    {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
+    {ok, C} = apply(eredis, start_link, RedisArgs),
+    eredis:q(C, ["DEL", ?GAMEINFO]),
+    eredis:q(C, ["DEL", ?MARKETS]),
+    eredis:q(C, ["DEL", ?MARKETS_FOR_INSERT]).
+    
 
-insert_market(C, MarketId, Selections) ->
-    eredis:q(C, ["HSET", "marketinfo", MarketId, term_to_binary(Selections)]).
+insert_game(C, GameId, _MarketIds, Markets) ->
+    [eredis:q(C, ["LPUSH", ?MARKETS_FOR_INSERT, term_to_binary(M)])  || M <- Markets],
+    eredis:q(C, ["LPUSH", ?GAMEINFO, GameId]).
 
-delete_game(C, GameId) ->
-    eredis:q(C, ["HDEL", "gameinfo", GameId]).
+insert_market(C, MarketId, SelectionIds) ->
+    eredis:q(C, ["LPUSH", ?MARKETS, term_to_binary({MarketId, SelectionIds})]).
 
-delete_market(C, MarketId) ->
-    eredis:q(C, ["HDEL", "marketinfo", MarketId]).
+delete_game(C) ->
+    eredis:q(C, ["RPOP", ?GAMEINFO]).
+
+delete_market(C) ->
+    eredis:q(C, ["RPOP", ?MARKETS]).
     
 pull_market(C) ->
-    case eredis:q(C, ["RPOP", "markets"]) of
-        {ok, M} when is_binary(M) ->
-            binary_to_term(M);
-        {ok, Result} -> 
-            Result
+    {ok, Market} = eredis:q(C, ["RPOP", ?MARKETS_FOR_INSERT]),
+    case Market of
+        Market when is_binary(Market) -> binary_to_term(Market);
+        Market -> Market
     end.
 
-markets_size(C) ->
-    {ok, Size} = eredis:q(C, ["LLEN", "markets"]),
-    Size.
+
+get_random_market(C) ->
+    case  eredis:q(C, ["LLEN", ?MARKETS]) of
+        {ok, <<"0">>} -> 
+            undefined;
+        {ok, Size} ->
+            S = list_to_integer(binary_to_list(Size)),
+            Index = rand:uniform(S) - 1,
+            {ok, Market} = eredis:q(C, ["LINDEX", ?MARKETS, Index]),
+            case Market of 
+                undefined -> undefined;
+                Market -> binary_to_term(Market)
+            end
+    end.
     
+    
+
 %% get_random_game() ->
 
 
