@@ -49,12 +49,11 @@ notify(Arg) ->
 init([]) ->
     {ok, #state{}}.
 
+handle_call({notify, Arg}, _From, State) ->
+    folsom_metrics:notify(Arg),
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
-
-handle_cast({notify, Arg}, State) ->
-    folsom_metrics:notify(Arg),
-    {noreply, State};
 
 handle_cast({create, counter, Name}, State) ->
     folsom_metrics:new_counter(Name),
