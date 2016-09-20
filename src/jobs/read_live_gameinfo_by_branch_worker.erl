@@ -26,15 +26,13 @@ init_metrics() ->
 start(Args) ->
     gen_worker:start_link(?MODULE, Args).
 
-init(_Init_Args) ->
-   #{branches_ids => []}.
+init(#{redis_conn_args := RedisConnArgs}) ->
+    {ok, RedisConn} = apply(eredis, start_link, RedisConnArgs),
+    #{redis_connection => RedisConn}.
 
-job({_, SlaveConn} = Conns, #{branches_ids := []} = State) ->
-    BranchesIDs = get_branch_ids(SlaveConn),
-    job(Conns, State#{branches_ids := BranchesIDs});
 
-job({_, SlaveConn}, #{branches_ids := BranchesIDs} = State) ->
-    BranchID = util:rand_nth(BranchesIDs),
+job({_, SlaveConn}, #{redis_connection := RedisConn} = State) ->
+    BranchID = get_branch_id(RedisConn),
     {ok, query(SlaveConn, BranchID), State}.
 
 query(Connection, BranchID) ->
@@ -52,15 +50,8 @@ query(Connection, BranchID) ->
         util:parse_find_response(Cursor)
     end.
 
-get_branch_ids(Connection) ->
-    Cursor = mc_worker_api:find(
-        Connection,
-        <<"gameinfo">>,
-        #{},
-        #{projector => {?BRANCH_ID, true}}
-    ),
-
-    Result = mc_cursor:rest(Cursor),
-    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
-    mc_cursor:close(Cursor),
-    sets:to_list(sets:from_list(BranchIDs)).
+get_branch_id(RedisConnection) ->
+    case meta_storage:get_random_gameinfo(RedisConnection) of
+        undefined -> undefined;
+        #{?BRANCH_ID := BranchID} -> BranchID
+    end.
