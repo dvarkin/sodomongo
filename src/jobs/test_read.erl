@@ -35,7 +35,6 @@ job({Connection, _}, State) ->
 
 select(Connection) ->
     fun() -> 
-            R = mc_worker_api:find_one(Connection, <<"gameinfo">>, #{<<"ID">> => 1}),
-            error_logger:info_msg("R ~p", [R])
+            _R = mc_worker_api:find_one(Connection, <<"gameinfo">>, #{<<"ID">> => 1})
     end.
 
