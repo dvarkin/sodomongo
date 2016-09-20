@@ -8,29 +8,34 @@
 %%%-------------------------------------------------------------------
 -module(test_read).
 
--define(IDLIMIT, 1000000).
+-behaviour(gen_worker).
 
-%% API
--export([run/1]).
+-export([init_metrics/0, job/2, init/1]).
+-export([start/1]).
+
+init_metrics() ->
+    gen_worker:init_metrics(?MODULE).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 
-run(Connection) ->
-    Id = rand:uniform(?IDLIMIT),
-    mc_worker_api:find_one(Connection, <<"odds">>, {<<"_id">>, Id}),
-    metrics:notify({<<"total_rate">>, 1}),
-    run(Connection).
+start(Args) -> 
+    gen_worker:start_link(?MODULE, Args).
+
+init( _Args) ->
+    undefined.
 
 
-%%--------------------------------------------------------------------
-%% @doc
-%% @spec
-%% @end
-%%--------------------------------------------------------------------
+job({Connection, _}, State) ->
+    {ok, select(Connection), State}.
 
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
+
+
+select(Connection) ->
+    fun() -> 
+            R = mc_worker_api:find_one(Connection, <<"gameinfo">>, #{<<"ID">> => 1}),
+            error_logger:info_msg("R ~p", [R])
+    end.
+
