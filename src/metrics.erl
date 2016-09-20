@@ -39,7 +39,7 @@ create(Type, Name) ->
 
 -spec notify({binary() | atom(), any()}) -> ok.
 notify(Arg) ->
-    gen_server:cast(?SERVER, {notify, Arg}),
+    gen_server:call(?SERVER, {notify, Arg}),
     ok.
 
 %%%===================================================================
