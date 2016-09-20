@@ -20,19 +20,13 @@ init_metrics() ->
 start(Args) ->
     gen_worker:start_link(?MODULE, Args).
 
-init(_Init_Args) ->
-    #{
-        query_limit => ?QUERY_LIMIT,
-        branch_ids => []
-    }.
+init(#{redis_connection_args := RedisConnArgs}) ->
+    {ok, RedisConn} = apply(eredis, start_link, RedisConnArgs),
+    #{redis_connection => RedisConn}.
 
-job({_MasterConn, SlaveConn} = Conns, #{branch_ids := []} = State) ->
-    BranchIds = get_branch_ids(SlaveConn),
-    job(Conns, State#{branch_ids := BranchIds});
-
-job({_MasterConn, SlaveConn}, #{branch_ids := BranchIds, query_limit := Limit} = State) ->
-    BranchId = util:rand_nth(BranchIds),
-    {ok, query(SlaveConn, BranchId, Limit), State}.
+job({_MasterConn, SlaveConn}, #{redis_connection := RedisConn} = State) ->
+    BranchId = get_branch_id(RedisConn),
+    {ok, query(SlaveConn, BranchId, ?QUERY_LIMIT), State}.
 
 %%%===================================================================
 %%% Internal functions
@@ -53,7 +47,7 @@ query(Connection, BranchId, Limit) ->
         util:parse_command_response(Response)
     end.
 
-get_branch_ids(Connection) ->
+get_branch_id(Connection) ->
     Cursor = mc_worker_api:find(
         Connection,
         <<"gameinfo">>,
