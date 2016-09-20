@@ -4,7 +4,8 @@
 -behavior(gen_worker).
 
 -include("../generator.hrl").
--define(QUERY_LIMIT, 10).
+
+-type state() :: #{redis_connection => pid()}.
 
 %% API
 
@@ -18,25 +19,28 @@ init_metrics() ->
 %%%===================================================================
 
 start(Args) ->
-    gen_worker:start(?MODULE, Args).
+    gen_worker:start_link(?MODULE, Args).
 
-init(_Init_Args) ->
+
+-spec init(Args :: map()) -> state().
+init(#{redis_conn_args := RedisConnArgs}) ->
+    {ok, RedisConn} = apply(eredis, start_link, RedisConnArgs),
     #{
-        query_limit => ?QUERY_LIMIT,
-        branch_ids => []
+        redis_connection => RedisConn
     }.
 
-job({_MasterConn, SlaveConn} = Conns, #{branch_ids := []} = State) ->
-    BranchIds = get_branch_ids(SlaveConn),
-    job(Conns, State#{branch_ids := BranchIds});
-
-job({_MasterConn, SlaveConn}, #{branch_ids := BranchIds} = State) ->
-    BranchId = util:rand_nth(BranchIds),
-    {ok, query(SlaveConn, BranchId), State}.
+job({_MasterConn, SlaveConn}, #{redis_connection := RedisConn} = State) ->
+    BranchID = get_branch_id(RedisConn),
+    {ok, query(SlaveConn, BranchID), State}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+query(_, undefined) ->
+    fun() ->
+        #{status => error, error_reason => <<"No gameinfos in db">>}
+    end;
 
 query(Connection, BranchId) ->
     fun() ->
@@ -66,15 +70,8 @@ query(Connection, BranchId) ->
         util:parse_command_response(Response)
     end.
 
-get_branch_ids(Connection) ->
-    Cursor = mc_worker_api:find(
-        Connection,
-        <<"gameinfo">>,
-        #{},
-        #{projector => {?BRANCH_ID, true}}
-    ),
-
-    Result = mc_cursor:rest(Cursor),
-    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
-    mc_cursor:close(Cursor),
-    sets:to_list(sets:from_list(BranchIDs)).
+get_branch_id(RedisConnection) ->
+    case meta_storage:get_random_gameinfo(RedisConnection) of
+        undefined -> undefined;
+        #{?BRANCH_ID := BranchID} -> BranchID
+    end.

@@ -46,7 +46,7 @@ job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
 job(undefined, _, State) ->
     {ok, undefined, State};
 
-job(Id, Connection, State) ->
+job(#{ ?ID := Id}, Connection, State) ->
     {ok, delete(Connection, Id), State}.
     
 %%%===================================================================

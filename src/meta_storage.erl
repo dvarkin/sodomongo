@@ -10,6 +10,7 @@
          delete_market/1,
          pull_market/1,
          get_random_market/1,
+         get_random_gameinfo/1,
          flush/0
         ]).
 
@@ -21,15 +22,18 @@ flush() ->
     eredis:q(C, ["DEL", ?MARKETS_FOR_INSERT]).
     
 
-insert_game(C, GameId, _MarketIds, Markets) ->
+insert_game(C, GameInfo, _MarketIds, Markets) ->
     [eredis:q(C, ["LPUSH", ?MARKETS_FOR_INSERT, term_to_binary(M)])  || M <- Markets],
-    eredis:q(C, ["LPUSH", ?GAMEINFO, GameId]).
+    eredis:q(C, ["LPUSH", ?GAMEINFO, term_to_binary(GameInfo)]).
 
 insert_market(C, MarketId, SelectionIds) ->
     eredis:q(C, ["LPUSH", ?MARKETS, term_to_binary({MarketId, SelectionIds})]).
 
 delete_game(C) ->
-    eredis:q(C, ["RPOP", ?GAMEINFO]).
+    case eredis:q(C, ["RPOP", ?GAMEINFO]) of
+        {ok, undefined} -> undefined;
+        {ok, Bin} -> binary_to_term(Bin)
+    end.
 
 delete_market(C) ->
     eredis:q(C, ["RPOP", ?MARKETS]).
@@ -39,6 +43,20 @@ pull_market(C) ->
     case Market of
         Market when is_binary(Market) -> binary_to_term(Market);
         Market -> Market
+    end.
+
+get_random_gameinfo(C) ->
+    case  eredis:q(C, ["LLEN", ?GAMEINFO]) of
+        {ok, <<"0">>} ->
+            undefined;
+        {ok, Size} ->
+            S = list_to_integer(binary_to_list(Size)),
+            Index = rand:uniform(S) - 1,
+            {ok, GameInfo} = eredis:q(C, ["LINDEX", ?GAMEINFO, Index]),
+            case GameInfo of
+                undefined -> undefined;
+                GameInfo -> binary_to_term(GameInfo)
+            end
     end.
 
 

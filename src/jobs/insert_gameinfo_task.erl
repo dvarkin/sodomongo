@@ -41,8 +41,8 @@ init(#{redis_conn_args := RedisConnArgs} = _Args) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
-    {GameInfo, Markets, GameId, MarketIds} = generate_data(),
-    meta_storage:insert_game(RedisConnection, GameId, MarketIds, Markets),
+    {GameInfo, Markets, _, MarketIds} = generate_data(),
+    meta_storage:insert_game(RedisConnection, GameInfo, MarketIds, Markets),
     {ok, insert(Connection, GameInfo), State}.
 
 %%%===================================================================
