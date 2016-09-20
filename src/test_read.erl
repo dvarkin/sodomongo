@@ -19,9 +19,7 @@
 
 
 run(Connection) ->
-    Id = rand:uniform(?IDLIMIT),
-    mc_worker_api:find_one(Connection, <<"odds">>, {<<"_id">>, Id}),
-    metrics:notify({<<"total_rate">>, 1}),
+    mc_worker_api:find_one(Connection, <<"gameinfo">>, {<<"ID">>, 3}),
     run(Connection).
 
 
