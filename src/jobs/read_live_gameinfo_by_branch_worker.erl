@@ -26,14 +26,15 @@ init_metrics() ->
 start(Args) ->
     gen_worker:start_link(?MODULE, Args).
 
-init(#{redis_conn_args := RedisConnArgs}) ->
-    {ok, RedisConn} = apply(eredis, start_link, RedisConnArgs),
-    #{redis_connection => RedisConn}.
+init(#{redis_conn_args := _RedisConnArgs}) ->
+%%    {ok, RedisConn} = apply(eredis, start_link, RedisConnArgs),
+%%    #{redis_connection => RedisConn},
+    ok.
 
 
-job({_, SlaveConn}, #{redis_connection := RedisConn} = State) ->
-    BranchID = get_branch_id(RedisConn),
-    {ok, query(SlaveConn, BranchID), State}.
+job({_, SlaveConn}, #{redis_connection := _RedisConn} = State) ->
+%%    BranchID = get_branch_id(RedisConn),
+    {ok, query(SlaveConn, rand:uniform(30)), State}.
 
 query(Connection, BranchID) ->
     fun() ->
@@ -50,8 +51,8 @@ query(Connection, BranchID) ->
         util:parse_find_response(Cursor)
     end.
 
-get_branch_id(RedisConnection) ->
-    case meta_storage:get_random_gameinfo(RedisConnection) of
-        undefined -> undefined;
-        #{?BRANCH_ID := BranchID} -> BranchID
-    end.
+%%get_branch_id(RedisConnection) ->
+%%    case meta_storage:get_random_gameinfo(RedisConnection) of
+%%        undefined -> undefined;
+%%        #{?BRANCH_ID := BranchID} -> BranchID
+%%    end.
