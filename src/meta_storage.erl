@@ -4,7 +4,8 @@
 -define(MARKETS, "markets").
 -define(MARKETS_FOR_INSERT, "markets_for_insert").
 
--export([insert_game/4, 
+-export([games_size/1,
+         insert_game/3, 
          insert_market/3,
          delete_game/1,
          delete_market/1,
@@ -20,11 +21,16 @@ flush() ->
     eredis:q(C, ["DEL", ?GAMEINFO]),
     eredis:q(C, ["DEL", ?MARKETS]),
     eredis:q(C, ["DEL", ?MARKETS_FOR_INSERT]).
-    
 
-insert_game(C, GameInfo, _MarketIds, Markets) ->
+
+games_size(C) ->
+    {ok, S} = eredis:q(C, ["LLEN", ?GAMEINFO]),
+    list_to_integer(binary_to_list(S)).
+
+insert_game(C, GameInfo, Markets) ->
     [eredis:q(C, ["LPUSH", ?MARKETS_FOR_INSERT, term_to_binary(M)])  || M <- Markets],
     eredis:q(C, ["LPUSH", ?GAMEINFO, term_to_binary(GameInfo)]).
+
 
 insert_market(C, MarketId, SelectionIds) ->
     eredis:q(C, ["LPUSH", ?MARKETS, term_to_binary({MarketId, SelectionIds})]).

@@ -7,6 +7,8 @@
 %% API
 -export([start/1, start/0]).
 
+-define(LIMIT, 1000).
+
 -record(state, {redis_connection}).
 
 %% gen_worker behaviour API
@@ -41,9 +43,14 @@ init(#{redis_conn_args := RedisConnArgs} = _Args) ->
                                                                                          | {ok, undefined, term()}.
 
 job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
-    {GameInfo, Markets, _, MarketIds} = generate_data(),
-    meta_storage:insert_game(RedisConnection, GameInfo, MarketIds, Markets),
-    {ok, insert(Connection, GameInfo), State}.
+    case meta_storage:games_size(RedisConnection) > ?LIMIT of
+        true ->
+            {ok, undefined, State};
+        false ->
+            {GameInfo, Markets} = generator:new_game_with_markets(),
+            meta_storage:insert_game(RedisConnection, GameInfo, Markets),
+            {ok, insert(Connection, GameInfo), State}
+    end.
 
 %%%===================================================================
 %%% Internal functions
@@ -54,12 +61,6 @@ insert(Connection, GameInfo) ->
             Response =  mc_worker_api:insert(Connection, ?GAMEINFO, GameInfo),
             parse_response(Response)
     end.
-
-generate_data() ->
-    {GameInfo, Markets} = generator:new_game_with_markets(),
-    #{?ID := GameId} = GameInfo,
-    MarketIds = [Id || #{?ID := Id} <- Markets],
-    {GameInfo, Markets, GameId, MarketIds}.
 
 parse_response({{false, _}, _Data} = Response) ->
     #{status => error, response => Response};
