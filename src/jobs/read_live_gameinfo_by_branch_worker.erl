@@ -32,7 +32,7 @@ init(#{redis_conn_args := _RedisConnArgs}) ->
     ok.
 
 
-job({_, SlaveConn}, #{redis_connection := _RedisConn} = State) ->
+job({_, SlaveConn}, State) ->
 %%    BranchID = get_branch_id(RedisConn),
     {ok, query(SlaveConn, rand:uniform(30)), State}.
 
