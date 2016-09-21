@@ -17,7 +17,6 @@
 -export([notify/1,
     create/2]).
 
--define(SERVER, {global, ?MODULE}).
 
 -record(state, {}).
 
@@ -26,7 +25,7 @@
 %%%===================================================================
 
 start_link() ->
-    gen_server:start_link(?SERVER, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 -spec create(counter | gauge | meter | histogram, binary() | atom()) -> ok.
 create(Type, Name) ->
@@ -34,12 +33,12 @@ create(Type, Name) ->
         true -> folsom_metrics:delete_metric(Name);
         _ -> ok
     end,
-    gen_server:cast(?SERVER, {create, Type, Name}),
+    gen_server:cast(?MODULE, {create, Type, Name}),
     ok.
 
 -spec notify({binary() | atom(), any()}) -> ok.
 notify(Arg) ->
-    gen_server:cast(?SERVER, {notify, Arg}),
+    gen_server:cast(?MODULE, {notify, Arg}),
     ok.
 
 %%%===================================================================
