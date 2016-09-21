@@ -1,6 +1,6 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/5, init_sharded_test/1, init_replica_test/0]).
+-export([start/0, start_deps/0, start_test/5, init_sharded_test/1, init_replica_test/0, init_metrics/0]).
 
 -include("generator.hrl").
 
@@ -103,7 +103,7 @@ init_metrics() ->
 
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, Time) ->
     init_replica_test(),
-    init_metrics(),
+    %init_metrics(),
     meta_storage:flush(),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time, 1),
     hugin:start_job(insert_marketinfo_task, InsertWorkers, Time, 1),
@@ -117,6 +117,7 @@ start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, Time) ->
     hugin:start_job(read_leagues_by_branch_with_number_of_games_in_active_state_worker, ReadWorkers, Time, 1),
     hugin:start_job(read_live_gameinfo_by_branch_worker, ReadWorkers, Time, 1),
     hugin:start_job(read_non_zero_odds_markets_worker, ReadWorkers, Time, 1),
+
     %% hugin:start_job(read_top_events_by_turnover_worker, ReadWorkers, Time, 100),
     %% hugin:start_job(read_top_events_starting_soon_worker, ReadWorkers, Time, 100),
 

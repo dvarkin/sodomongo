@@ -137,25 +137,24 @@ idle(_) ->
 
 %%% JOB
 
-profile_job(_Module, Action,
+profile_job(Module, Action,
                 #{
-                  rate := {_, _Rate},
-                  total := {_, _Total},
+                  rate := {_, Rate},
+                  total := {_, Total},
                   time := {_, Time},
-                  error := {_, _Error},
-                  docs_count := {_, _DocsCount},
-                  success := {_, _Success}
+                  error := {_, Error},
+                  docs_count := {_, DocsCount},
+                  success := {_, Success}
                  }
                ) ->
-    %metrics:notify({Rate, 1}),
-    %metrics:notify({Total, {inc, 1}}),
-    _Response = profiler:prof(Time, Action),
-    ok.
-    %case Response of
-    %    #{status := success, doc_count := N} ->
-            %metrics:notify({DocsCount, N}),
-            %metrics:notify({Success, {inc, 1}});
-    %    Reponse ->
-    %        error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Reponse]),
-    %        metrics:notify({Error, {inc, 1}})
-    %end.
+    metrics:notify({Rate, 1}),
+    metrics:notify({Total, {inc, 1}}),
+    Response = profiler:prof(Time, Action),
+    case Response of
+        #{status := success, doc_count := N} ->
+            metrics:notify({DocsCount, N}),
+            metrics:notify({Success, {inc, 1}});
+        Response ->
+            error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Response]),
+            metrics:notify({Error, {inc, 1}})
+    end.

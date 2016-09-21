@@ -29,7 +29,7 @@ make_args(Dir) ->
         "/deps/sync/ebin"
     ],
     DirDeps = string:join([" -pa " ++ Dir ++ D || D <- Deps], ""),
-    StartArgs = " -config " ++ Dir ++ "/rel/sys -setcookie abc -s sodomongo start_deps ",
+    StartArgs = " -config " ++ Dir ++ "/rel/sys -setcookie abc -s sodomongo start_deps -s metrics start_link -s sodomongo init_metrics ",
     string:join([TunningArgs, DirDeps, StartArgs], " ").
 
 start() ->

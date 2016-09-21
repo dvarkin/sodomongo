@@ -14,7 +14,7 @@
 -include("../generator.hrl").
 
 %% API
--export([init_metrics/0, job/2, init/1, start/1]).
+-export([init_metrics/0, job/2, init/1, start/1, start/0]).
 
 %%%===================================================================
 %%% API
@@ -22,6 +22,13 @@
 
 init_metrics() ->
     gen_worker:init_metrics(?MODULE).
+
+start() ->
+    ConnArgs = mongo:conn_args(),
+    error_logger:info_msg("~p~n", [ConnArgs]),
+    {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
+    start(#{mongo_conn_args => ConnArgs, time => 20000, sleep => 1, redis_conn_args => RedisArgs}).
+
 
 start(Args) ->
     gen_worker:start_link(?MODULE, Args).
