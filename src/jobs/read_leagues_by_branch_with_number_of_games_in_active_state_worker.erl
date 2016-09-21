@@ -70,8 +70,9 @@ query(Connection, BranchId) ->
         util:parse_command_response(Response)
     end.
 
-get_branch_id(RedisConnection) ->
-    case meta_storage:get_random_gameinfo(RedisConnection) of
-        undefined -> undefined;
-        #{?BRANCH_ID := BranchID} -> BranchID
-    end.
+get_branch_id(_RedisConnection) ->
+    rand:uniform(30).
+%%    case meta_storage:get_random_gameinfo(RedisConnection) of
+%%        undefined -> undefined;
+%%        #{?BRANCH_ID := BranchID} -> BranchID
+%%    end.

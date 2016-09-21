@@ -47,15 +47,16 @@ query(Connection, BranchId, Limit) ->
         util:parse_command_response(Response)
     end.
 
-get_branch_id(Connection) ->
-    Cursor = mc_worker_api:find(
-        Connection,
-        <<"gameinfo">>,
-        #{},
-        #{projector => {?BRANCH_ID, true}}
-    ),
-
-    Result = mc_cursor:rest(Cursor),
-    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
-    mc_cursor:close(Cursor),
-    sets:to_list(sets:from_list(BranchIDs)).
+get_branch_id(_Connection) ->
+    rand:uniform(30).
+%%    Cursor = mc_worker_api:find(
+%%        Connection,
+%%        <<"gameinfo">>,
+%%        #{},
+%%        #{projector => {?BRANCH_ID, true}}
+%%    ),
+%%
+%%    Result = mc_cursor:rest(Cursor),
+%%    BranchIDs = [BranchID || #{<<"BranchID">> := BranchID} <- Result],
+%%    mc_cursor:close(Cursor),
+%%    sets:to_list(sets:from_list(BranchIDs)).
