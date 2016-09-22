@@ -120,7 +120,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%% Init Metrics
 
--spec make_metrics_titles(Module :: atom) -> metrics().
+-spec make_metrics_titles(Module :: atom()) -> metrics().
 
 make_metrics_titles(Module) when is_atom(Module) ->
     M = <<(atom_to_binary(Module, utf8))/binary, "_metrics">>,
