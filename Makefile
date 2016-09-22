@@ -6,7 +6,7 @@ COMPILE_FIRST=gen_worker
 
 DEPS =  mongodb folsom folsomite
 
-LOCAL_DEPS = crypto bson mongodb
+LOCAL_DEPS = crypto bson
 
 BUILD_DEPS = eredis
 
@@ -14,8 +14,7 @@ dep_mongodb = git https://github.com/dvarkin/mongodb-erlang.git master
 
 SHELL_DEPS = sync
 
-PLT_APPS = sodomongo
-
-DIALYZER_DIRS = src
+DIALYZER_DIRS = ebin
 
 include erlang.mk
+

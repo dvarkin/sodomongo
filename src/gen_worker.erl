@@ -12,10 +12,20 @@
 
 -export([start_link/2, init_metrics/1]).
 
--type metrics() :: #{ doc_count => pos_integer(),
-                      error_reason => any(),
-                      result => any(),
-                      status => success | error }.
+-type rate()       :: {meter,     binary()}.
+-type time()       :: {histogram, binary()}.
+-type docs_count() :: {histogram, binary()}.
+-type total()      :: {counter,   binary()}.
+-type success()    :: {counter,   binary()}.
+-type error()      :: {counter,   binary()}.
+
+-type metrics() ::  #{rate := rate(), 
+                      time := time(),
+                      docs_count := docs_count(),
+                      total := total(),
+                      success := success(),
+                      error := error()}.
+
 -type action_closure() :: fun( () -> metrics() ).
 
 -callback init_metrics() -> ok.
@@ -31,23 +41,37 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {connection_args :: map(),
-                redis_conn_args :: [],
-                connections :: { MasterConn :: pid(), SecCon :: pid() },
-                module :: atom(), 
-                time :: pos_integer(), 
-                sleep :: integer(),
-                metrics :: map(),
-                module_state :: term()
+-record(state, {connection_args = #{}                :: map(),
+                redis_conn_args = []                 :: [],
+                connections = {undefined, undefined} :: { MasterConn :: pid() | undefined, SecCon :: pid() | undefined },
+                module = undefined                   :: atom(), 
+                time = 1000                          :: pos_integer(), 
+                sleep = undefined                    :: pos_integer() | undefined,
+                metrics = #{}                        :: map(),
+                module_state = undefined             :: term() 
                }).
+
+-spec start_link(Module :: atom(), Args :: #{}) -> {ok, Pid :: pid()}.
 
 start_link(Module, Args) ->
     gen_server:start_link(?MODULE, [Args#{module => Module}], []).
 
+-spec init([#{'module':=atom(), 
+              'mongo_conn_args':=map(), 
+              'redis_conn_args':=_, 
+              'sleep':='undefined' | pos_integer(), 
+              'time':=pos_integer()}]) ->
+                  {'ok',#state{connection_args :: map(),
+                               redis_conn_args::[],
+                               connections::{'undefined','undefined'},
+                               module::atom(),
+                               time::pos_integer(),
+                               sleep::'undefined' | pos_integer(),
+                               metrics::#{'docs_count':={_,_}, 'error':={_,_}, 'rate':={_,_}, 'success':={_,_}, 'time':={_,_}, 'total':={_,_}}}}.
+
 init([#{ module := Module, mongo_conn_args := ConnectionArgs, time := Time, sleep := Sleep, redis_conn_args := _RedisConnArgs} = Args]) ->
     self() ! connect,
-    %timer:kill_after(Time),
-    timer:apply_after(Time, gen_server, stop, [self()]),
+    {ok, _TRef} = timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     Module_State = Module:init(Args),
     {ok, #state{connection_args = ConnectionArgs, 
@@ -74,7 +98,7 @@ handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} =
 handle_info(tick, #state{module = Module, connections = Connections, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
     Response = Module:job(Connections, Module_State),
     Module_State_New = parse_response(Response, Module, Metrics),
-    idle(Sleep),
+    ok = idle(Sleep),
     {noreply, State#state{module_state = Module_State_New}};
 
 handle_info(_Info, State) ->
@@ -95,6 +119,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 %%% Init Metrics
+
+-spec make_metrics_titles(Module :: atom) -> metrics().
 
 make_metrics_titles(Module) when is_atom(Module) ->
     M = <<(atom_to_binary(Module, utf8))/binary, "_metrics">>,
@@ -131,10 +157,11 @@ parse_response({ok, ProfileAction, Module_State_New}, Module, Metrics) ->
 
 
 idle(Sleep) when Sleep > 0 ->
-    timer:send_after(Sleep, tick);
+    {ok, _Tref} = timer:send_after(Sleep, tick),
+    ok;
 idle(_) ->
-    self() ! tick.
-
+    self() ! tick,
+    ok.
 %%% JOB
 
 profile_job(Module, Action,
