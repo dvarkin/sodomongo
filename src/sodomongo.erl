@@ -1,6 +1,16 @@
 -module(sodomongo).
 
--export([start/0, start_deps/0, start_test/5, init_sharded_test/1, init_replica_test/0, init_metrics/0, start_read_test/2, fill_mongo/2]).
+-export([
+    start/0,
+    start_deps/0,
+    start_test/5,
+    init_sharded_test/1,
+    init_replica_test/0,
+    init_metrics/0,
+    start_read_test/2,
+    fill_mongo/2,
+    upsert_mongo/3
+]).
 
 -include("generator.hrl").
 
@@ -116,6 +126,14 @@ fill_mongo(InsertWorkers, Time) ->
     meta_storage:flush(),
     hugin:start_job(insert_gameinfo_task, InsertWorkers, Time, 1),
     hugin:start_job(insert_marketinfo_task, InsertWorkers, Time, 1),
+    ok.
+
+upsert_mongo(Workers, Time, Sleep) ->
+    meta_storage:flush(),
+    hugin:start_job(insert_gameinfo_task, Workers, Time, Sleep),
+    hugin:start_job(insert_marketinfo_task, Workers, Time, Sleep),
+    hugin:start_job(delete_gameinfo_task, round(Workers/3), Time, Sleep),
+    hugin:start_job(delete_marketinfo_task, round(Workers/3), Time, Sleep),
     ok.
 
 
