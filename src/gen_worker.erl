@@ -12,6 +12,13 @@
 
 -export([start_link/2, init_metrics/1]).
 
+-define(SERVER, ?MODULE).
+
+
+%%% TYPES
+
+%% METRICS
+
 -type rate()       :: {meter,     binary()}.
 -type time()       :: {histogram, binary()}.
 -type docs_count() :: {histogram, binary()}.
@@ -26,24 +33,25 @@
                       success := success(),
                       error := error()}.
 
--type action_closure() :: fun( () -> metrics() ).
+-type response() ::  #{statue := error | success, reponse := term(), doc_count := undefined | pos_integer()}.
 
--callback init_metrics() -> ok.
--callback init(Args :: list()) -> term().
--callback job({ReadConnection :: pid(), WriteConnection :: pid()}, State :: term()) ->
-    {ok, ActionClosure :: action_closure(), State :: term()}.
--callback start(Args :: map()) -> {ok, pid()}.
+-type job_response() :: {ok, fun(() -> response())  | undefined, term()}.
 
-%% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+%% GEN WORKER ARGS
 
+-export_type([redis_conn_args/0, job_response/0, response/0]).
 
--define(SERVER, ?MODULE).
+-type redis_conn_args() :: [string() | pos_integer()].
 
--record(state, {connection_args = #{}                :: map(),
-                redis_conn_args = []                 :: [],
-                connections = {undefined, undefined} :: { MasterConn :: pid() | undefined, SecCon :: pid() | undefined },
+-type worker_args() :: #{'module':= atom(), 
+                         'mongo_conn_args':= mongo:mongo_args(),
+                         'redis_conn_args':= redis_conn_args(), 
+                         'sleep':= undefined | pos_integer(), 
+                         'time':= pos_integer()}.
+
+-record(state, {mongo_conn_args = []                 :: mongo:mongo_args(),
+                redis_conn_args = []                 :: redis_conn_args(),
+                connections = {undefined, undefined} :: {mongo:master_connection(), mongo:secondary_connection()},
                 module = undefined                   :: atom(), 
                 time = 1000                          :: pos_integer(), 
                 sleep = undefined                    :: pos_integer() | undefined,
@@ -51,30 +59,47 @@
                 module_state = undefined             :: term() 
                }).
 
--spec start_link(Module :: atom(), Args :: #{}) -> {ok, Pid :: pid()}.
+-type worker_state() :: #state{}.
 
-start_link(Module, Args) ->
+%%%
+%%% GEN WORKER BEHAVIOUR CALLBACKES %%%
+%%%
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+-callback init_metrics() -> ok.
+
+-callback init(Args :: worker_args()) -> term().
+
+-callback job({WriteConnection :: mongo:master_connection(), ReadConnection :: mongo:secondary_connection()}, State :: term()) -> job_response().
+
+-callback start(Args :: worker_args()) -> 'ignore' | {'error',_} | {'ok',pid()}.
+
+%%
+%% gen_server callbacks
+%%
+
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
+
+-spec start_link(Module :: atom(), Args :: map()) -> {ok, Pid :: pid()} | {error, Reason :: term()} | ignore.
+
+start_link(Module, Args) when is_atom(Module) ->
     gen_server:start_link(?MODULE, [Args#{module => Module}], []).
 
--spec init([#{'module':=atom(), 
-              'mongo_conn_args':=map(), 
-              'redis_conn_args':=_, 
-              'sleep':='undefined' | pos_integer(), 
-              'time':=pos_integer()}]) ->
-                  {'ok',#state{connection_args :: map(),
-                               redis_conn_args::[],
-                               connections::{'undefined','undefined'},
-                               module::atom(),
-                               time::pos_integer(),
-                               sleep::'undefined' | pos_integer(),
-                               metrics::#{'docs_count':={_,_}, 'error':={_,_}, 'rate':={_,_}, 'success':={_,_}, 'time':={_,_}, 'total':={_,_}}}}.
+-spec init([worker_args()]) -> {'ok', worker_state()}.
 
 init([#{ module := Module, mongo_conn_args := ConnectionArgs, time := Time, sleep := Sleep, redis_conn_args := _RedisConnArgs} = Args]) ->
     self() ! connect,
     {ok, _TRef} = timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     Module_State = Module:init(Args),
-    {ok, #state{connection_args = ConnectionArgs, 
+    {ok, #state{mongo_conn_args = ConnectionArgs, 
                 module = Module, 
                 module_state = Module_State,
                 time = Time, 
@@ -88,7 +113,7 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} = State) ->
+handle_info(connect, #state{mongo_conn_args = ConnectionArgs, module = Module} = State) ->
     {ok, MasterConn} = mongo:connect_to_master(ConnectionArgs),
     {ok, SecConn} = mongo:connect_to_secondary(ConnectionArgs),
     self() ! tick, 

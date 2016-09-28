@@ -43,7 +43,7 @@ start_job(Task_Module, Workers, Time, Sleep) when is_atom(Task_Module) andalso W
 
 %% GEN server API
 
--spec start_link() -> {ok, pid()}.
+-spec start_link() -> {ok, pid()} | {error, Reason :: term()} | ignore.
 start_link() ->
     gen_server:start_link(?SERVER, ?MODULE, [], []).
 

@@ -25,7 +25,7 @@ start() ->
     {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
     start(#{mongo_conn_args => ConnArgs, time => 5000, sleep => 1000, redis_conn_args => RedisArgs}).
 
--spec start(map()) -> {ok, pid()}.
+-spec start(gen_worker:worker_args()) -> 'ignore' | {'error',_} | {'ok',pid()}.
 
 start(Args) -> 
     gen_worker:start_link(?MODULE, Args).

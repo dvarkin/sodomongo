@@ -14,7 +14,9 @@ dep_mongodb = git https://github.com/dvarkin/mongodb-erlang.git master
 
 SHELL_DEPS = sync
 
-DIALYZER_DIRS = ebin
+#DIALYZER_DIRS = 
+
+DIALYZER_OPTS = "-Woverspecs"
 
 include erlang.mk
 

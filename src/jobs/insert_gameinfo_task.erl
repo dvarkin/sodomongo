@@ -39,8 +39,7 @@ init(#{redis_conn_args := RedisConnArgs} = _Args) ->
     {ok, RedisConnection} = apply(eredis, start_link, RedisConnArgs),
     #state{redis_connection = RedisConnection}.
 
--spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
-                                                                                         | {ok, undefined, term()}.
+-spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, gen_worker:action_closure(), State :: term()}.
 
 job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
     case meta_storage:games_size(RedisConnection) > ?LIMIT of

@@ -6,9 +6,9 @@
 
 %% API
 
--export([start/1, start/0]).
+-export([start/1]).
 
--record(state, {redis_connection}).
+-record(state, {redis_connection = undefined :: pid() | undefined}).
 
 %% gen_worker behaviour API
 
@@ -21,37 +21,40 @@ init_metrics() ->
 %%% API
 %%%===================================================================
 
-start() ->
-    ConnArgs = mongo:conn_args(),
-    {ok, RedisArgs} = application:get_env(sodomongo, redis_connection),
-    start(#{mongo_conn_args => ConnArgs, time => 5000, sleep => 1000, redis_conn_args => RedisArgs}).
-
--spec start(map()) -> {ok, pid()}.
+-spec start(gen_worker:worker_args()) -> 'ignore' | {'error',_} | {'ok',pid()}.
 
 start(Args) -> 
     gen_worker:start_link(?MODULE, Args).
 
--spec init(list()) -> {ok, term()}.
+-spec init(Args :: gen_worker:worker_args()) -> #state{redis_connection :: pid() | undefined}.
 
-init(#{redis_conn_args := RedisConnArgs}) ->
+init(#{redis_conn_args := RedisConnArgs, module := ?MODULE, mongo_conn_args := _, sleep := _, time := _} = _Args) ->
     {ok, RedisConnection} = apply(eredis, start_link, RedisConnArgs),
     #state{redis_connection =  RedisConnection}.
 
--spec job({MasterConnection :: pid(), SlaveConnection :: pid()}, State :: term()) -> {ok, fun(), term()} 
-                                                                                         | {ok, undefined, term()}.
+-spec job({MasterConnection :: mongo:master_connection(), SlaveConnection  :: mongo:master_connection()}, 
+          State :: term()) 
+         -> gen_worker:job_response().
 
 job({Connection, _}, #state{redis_connection = RedisConnection} = State) ->
     job(meta_storage:delete_game(RedisConnection), Connection, State).
 
+-spec job(Id :: pos_integer() | undefined, 
+          Connection ::  mongo:master_connection() | mongo:master_connection(), 
+          State :: term()) 
+         -> gen_worker:job_response().
+
 job(undefined, _, State) ->
     {ok, undefined, State};
 
-job(#{ ?ID := Id}, Connection, State) ->
+job(#{?ID := Id}, Connection, State) ->
     {ok, delete(Connection, Id), State}.
     
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%-spec delete(mongo:master_connection() | mongo:secondary_connection(), pos_integer()) ->  fun(() -> none()).
 
 delete(Connection, GameId) ->
     fun() ->

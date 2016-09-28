@@ -9,9 +9,15 @@
 -module(mongo).
 -author("serhiinechyporhuk").
 
+-type mongo_driver_args() :: {'database' | 'host' | 'login' | 'password' | 'port' | 'r_mode' | 'register' | 'ssl' | 'ssl_opts' | 'w_mode',atom() | binary() | fun() | [any()] | integer() | {_,_}}.
+-type mongo_args() :: #{master := [mongo_driver_args()], secondaries := [[mongo_driver_args()]]}.
+-type connection() :: pid() | undefined.
+-type master_connection() :: connection().
+-type secondary_connection() :: connection().
+
 %% API
 -export([conn_args/0, connect_to_master/1, connect_to_secondary/1]).
-
+-export_type([mongo_driver_args/0, mongo_args/0, master_connection/0, secondary_connection/0]).
 
 is_master(Conn) ->
     {_, #{<<"ismaster">> := IsMaster}} = mc_worker_api:command(Conn, {<<"isMaster">>, 1}),
@@ -43,12 +49,18 @@ group_nodes(Hosts, ConnectionArgs, Master, Secondaries) ->
         secondaries => [lists:keyreplace(host, 1, ConnectionArgs, {host, Sec}) || Sec <- lists:concat([Hosts, Secondaries])]
     }.
 
+-spec conn_args() -> mongo_args().
+
 conn_args() ->
     {ok, RawConnArgs} = application:get_env(sodomongo, mongo_connection),
     group_nodes(RawConnArgs).
 
+-spec connect_to_master(mongo_args()) -> master_connection().
+
 connect_to_master(#{ master := MasterConnArgs }) ->
     mc_worker_api:connect(MasterConnArgs).
+
+-spec connect_to_secondary(mongo_args()) -> secondary_connection().
 
 connect_to_secondary(#{ secondaries := SecondariesConnArgs }) ->
     HostConfig = util:rand_nth(SecondariesConnArgs), 

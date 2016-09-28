@@ -101,6 +101,8 @@ init_metrics() ->
     %% read_top_events_starting_soon_worker:init_metrics(),
     ok.
 
+-spec start_test(pos_integer(),pos_integer(),pos_integer(),pos_integer(),pos_integer()) -> ok.
+
 start_test(InsertWorkers, UpdateWorkers, DeleteWorkers, ReadWorkers, Time) ->
     init_replica_test(),
     %init_metrics(),
