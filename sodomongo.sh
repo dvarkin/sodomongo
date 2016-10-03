@@ -11,19 +11,22 @@ else
 fi
 
 erl -name "${NAME}@${IP}" \
-    -pa deps/bson/ebin \
-    -pa deps/mongodb/ebin \
-    -pa deps/pbkdf2/ebin/ \
-    -pa deps/poolboy/ebin/ \
-    -pa deps/bear/ebin/ \
-    -pa deps/folsom/ebin/ \
-    -pa deps/folsomite/ebin/ \
-    -pa deps/zeta/ebin/ \
-    -pa deps/protobuffs/ebin/ \
-    -pa deps/sync/ebin/ \
-    -pa deps/eredis/ebin \
-    -pa ebin/ \
+    -pa _build/dev/lib/bson/ebin \
+    -pa _build/dev/lib/mongodb/ebin \
+    -pa _build/dev/lib/pbkdf2/ebin/ \
+    -pa _build/dev/lib/poolboy/ebin/ \
+    -pa _build/dev/lib/bear/ebin/ \
+    -pa _build/dev/lib/folsom/ebin/ \
+    -pa _build/dev/lib/folsomite/ebin/ \
+    -pa _build/dev/lib/protobuffs/ebin/ \
+    -pa _build/dev/lib/sync/ebin/ \
+    -pa _build/dev/lib/sodomongo/ebin \
+    -pa _build/dev/lib/rethinkdb/ebin \
+    -pa _build/dev/lib/connection/ebin \
+    -pa _build/dev/lib/eredis/ebin \
+    -pa $ELIXIR_EBIN/ \
     -boot start_sasl \
+    -kernel error_logger silent \
     -config rel/sys \
     -s ${START_MODULE} \
     ${@:4}

@@ -22,7 +22,11 @@ start_deps() ->
     ok = application:ensure_started(bear),
     ok = application:ensure_started(folsom),
     ok = application:ensure_started(protobuffs),
-    ok = application:ensure_started(zeta),
+    ok = application:ensure_started(inets),
+    ok = application:ensure_started(compiler),
+    ok = application:ensure_started(elixir),
+    ok = application:ensure_started(eredis),
+    %ok = application:ensure_started(zeta),
     ok = application:ensure_started(folsomite).
 
 init_metrics() ->
@@ -63,4 +67,4 @@ start_test(_InsertWorkers, _UpdateWorkers, _DeleteWorkers, ReadWorkers, Time) ->
     hugin:start_job(test_read, ReadWorkers, Time, 100),
     ok.
 
-    
+
