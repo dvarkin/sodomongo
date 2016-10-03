@@ -1,4 +1,4 @@
--module(kinder_metrics).
+-module(worker_metrics).
 -author("eugeny").
 
 -export([collect/0, notify/0, init/0, create_jobs/1]).

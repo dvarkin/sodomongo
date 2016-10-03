@@ -1,4 +1,4 @@
 #!/bin/sh
 
-./sodomongo.sh 127.0.0.1 slave slave
+./sodomongo.sh 192.168.144.111 slave slave
 

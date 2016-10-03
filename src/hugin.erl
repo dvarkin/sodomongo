@@ -55,14 +55,9 @@ init([]) ->
     metrics:create(gauge, <<"worker.awaiting">>),
     metrics:create(counter, <<"reconnections.total">>),
     metrics:create(counter, <<"timedout.total">>),
-    %timer:send_interval(10000, send_metrics),
-
-    %kinder_metrics:init(),
-    %{ok, UpdateInterval} = application:get_env(folsomite, flush_interval),
-    %timer:apply_interval(UpdateInterval, kinder_metrics, notify, []),
+    self() ! connect_to_mongo,
     {ok, RedisConnArgs} = application:get_env(sodomongo, redis_connection),
-    ConnArgs = mongo:conn_args(),
-    {ok, #state{mongo_conn_args = ConnArgs, redis_conn_args = RedisConnArgs}}.
+    {ok, #state{redis_conn_args = RedisConnArgs}}.
 
 handle_call(workers, _From, #state{workers = Workers} = State) ->
     {reply, Workers, State};
@@ -92,6 +87,9 @@ handle_cast({worker_terminate, Worker}, #state{workers = Workers} = State) ->
 %%     metrics:notify({<<"worker.awaiting">>, maps:size(Workers) - Active}),
 %%     {noreply, State};
 
+handle_info(connect_to_mongo, State) ->
+    ConnArgs = mongo:conn_args(),
+    {noreply, State#state{mongo_conn_args = ConnArgs}};
 handle_info(_Info, State) ->
     error_logger:error_msg("Hugin. Unhendled message: ~p", [_Info]),
     {noreply, State}.
