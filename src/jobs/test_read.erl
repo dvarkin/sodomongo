@@ -10,7 +10,7 @@
 
 -behaviour(gen_worker).
 
--export([init_metrics/0, job/2, init/1]).
+-export([init_metrics/0, job/1, init/1]).
 -export([start/1]).
 
 init_metrics() ->
@@ -24,17 +24,14 @@ init_metrics() ->
 start(Args) -> 
     gen_worker:start_link(?MODULE, Args).
 
-init( _Args) ->
+init(Args) ->
+    RedisArgs = proplists:get_value(redis_connection, Args),
+    RethinkArgs = proplists:get_value(rethink_connection, Args),
+    error_logger:info_msg("~p~n~p~n", [RedisArgs, RethinkArgs]),
     undefined.
 
 
-job({Connection, _}, State) ->
-    {ok, select(Connection), State}.
+job(State) ->
+    {ok, undefined, State}.
 
-
-
-select(Connection) ->
-    fun() -> 
-            _R = mc_worker_api:find_one(Connection, <<"gameinfo">>, #{<<"ID">> => 1})
-    end.
 

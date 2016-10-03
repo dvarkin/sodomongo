@@ -18,7 +18,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {workers = #{}, mongo_conn_args = [], redis_conn_args = []}).
+-record(state, {workers = #{}, envs = []}).
 
 %% API.
 
@@ -55,41 +55,29 @@ init([]) ->
     metrics:create(gauge, <<"worker.awaiting">>),
     metrics:create(counter, <<"reconnections.total">>),
     metrics:create(counter, <<"timedout.total">>),
-    self() ! connect_to_mongo,
-    {ok, RedisConnArgs} = application:get_env(sodomongo, redis_connection),
-    {ok, #state{redis_conn_args = RedisConnArgs}}.
+    Envs = application:get_all_env(sodomongo),
+    {ok, #state{envs = Envs}}.
 
 handle_call(workers, _From, #state{workers = Workers} = State) ->
     {reply, Workers, State};
 
-handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{mongo_conn_args = ConnectionArgs, redis_conn_args = RedisConnArgs} = State) ->
-    [start_worker(N , ConnectionArgs, Task_Module, Time, Sleep, RedisConnArgs) || N <- lists:seq(1, WorkersNum)],
+handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{envs = Envs} = State) ->
+    [start_worker(N, Envs, Task_Module, Time, Sleep) || N <- lists:seq(1, WorkersNum)],
     {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
 
 handle_cast({worker_monitor, Worker, Task_Module, WorkerState}, #state{workers = Workers} = State) ->
-%    erlang:link(Worker),
     {noreply, State#state{workers = Workers#{Worker => #{state => WorkerState, task => Task_Module}}}};
 
 handle_cast({worker_state, Worker, Task_Module, WorkerState}, #state{workers = Workers} = State) ->
     {noreply, State#state{workers = Workers#{Worker := #{state => WorkerState, task => Task_Module}}}};
 
 handle_cast({worker_terminate, Worker}, #state{workers = Workers} = State) ->
- %   erlang:unlink(Worker),
     W = maps:remove(Worker, Workers),
     {noreply, State#state{workers = W}}.
 
-%% handle_info(send_metrics, #state{workers = Workers} = State) ->
-%%     Active = maps:size(workers_by_state(Workers, 'INPROGRESS')),
-%%     metrics:notify({<<"worker.active">>, Active}),
-%%     metrics:notify({<<"worker.awaiting">>, maps:size(Workers) - Active}),
-%%     {noreply, State};
-
-handle_info(connect_to_mongo, State) ->
-    ConnArgs = mongo:conn_args(),
-    {noreply, State#state{mongo_conn_args = ConnArgs}};
 handle_info(_Info, State) ->
     error_logger:error_msg("Hugin. Unhendled message: ~p", [_Info]),
     {noreply, State}.
@@ -107,11 +95,11 @@ gen_node() ->
     Nodes = nodes(),
     util:rand_nth(Nodes).
 
-start_worker(N, ConnectionArgs, Task_Module, Time, Sleep, RedisConnArgs) when N > 0 ->
+start_worker(N, Envs, Task_Module, Time, Sleep) when N > 0 ->
     spawn(fun() ->
 		  timer:sleep(N * 25),
-		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [#{mongo_conn_args => ConnectionArgs, 
+		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [#{envs => Envs,
                                                                            time => Time,
-                                                                           sleep => Sleep,
-                                                                           redis_conn_args => RedisConnArgs}])
+                                                                           sleep => Sleep
+                                                                           }])
 	  end).

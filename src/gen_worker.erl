@@ -20,7 +20,7 @@
 
 -callback init_metrics() -> ok.
 -callback init(Args :: list()) -> term().
--callback job({ReadConnection :: pid(), WriteConnection :: pid()}, State :: term()) ->
+-callback job(State :: term()) ->
     {ok, ActionClosure :: action_closure(), State :: term()}.
 -callback start(Args :: map()) -> {ok, pid()}.
 
@@ -31,10 +31,8 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {connection_args :: map(),
-                redis_conn_args :: [],
-                connections :: { MasterConn :: pid(), SecCon :: pid() },
-                module :: atom(), 
+-record(state, {envs :: [],
+                module :: atom(),
                 time :: pos_integer(), 
                 sleep :: integer(),
                 metrics :: map(),
@@ -44,13 +42,13 @@
 start_link(Module, Args) ->
     gen_server:start_link(?MODULE, [Args#{module => Module}], []).
 
-init([#{ module := Module, mongo_conn_args := ConnectionArgs, time := Time, sleep := Sleep, redis_conn_args := _RedisConnArgs} = Args]) ->
-    self() ! connect,
-    %timer:kill_after(Time),
+init([#{ module := Module, time := Time, sleep := Sleep, envs := Envs}]) ->
     timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
-    Module_State = Module:init(Args),
-    {ok, #state{connection_args = ConnectionArgs, 
+    Module_State = Module:init(Envs),
+    self() ! tick,
+    hugin:worker_monitor(self(), Module, 'INPROGRESS'),
+    {ok, #state{envs = Envs,
                 module = Module, 
                 module_state = Module_State,
                 time = Time, 
@@ -64,15 +62,9 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(connect, #state{connection_args = ConnectionArgs, module = Module} = State) ->
-    {ok, MasterConn} = mongo:connect_to_master(ConnectionArgs),
-    {ok, SecConn} = mongo:connect_to_secondary(ConnectionArgs),
-    self() ! tick, 
-    hugin:worker_monitor(self(), Module, 'INPROGRESS'),
-    {noreply, State#state{connections = {MasterConn, SecConn}}};
 
-handle_info(tick, #state{module = Module, connections = Connections, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
-    Response = Module:job(Connections, Module_State),
+handle_info(tick, #state{module = Module, sleep = Sleep, module_state = Module_State, metrics = Metrics} = State) ->
+    Response = Module:job(Module_State),
     Module_State_New = parse_response(Response, Module, Metrics),
     idle(Sleep),
     {noreply, State#state{module_state = Module_State_New}};
@@ -81,9 +73,7 @@ handle_info(_Info, State) ->
     error_logger:error_msg("Unhandeled message in worker: ~p", [_Info]),
     {noreply, State}.
 
-terminate(_Reason, #state{connections = {Master, Slave}}) ->
-    mc_worker_api:disconnect(Master),
-    mc_worker_api:disconnect(Slave),
+terminate(_Reason, _State) ->
     hugin:worker_terminate(self()),
     ok.
 
