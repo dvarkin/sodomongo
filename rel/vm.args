@@ -1,5 +1,8 @@
--P 500000
--Q 100000
--name sodomongo@192.168.144.101
+-emu_args
++K true
++P 2097152 
++Q 2097152
+-smp true
 -setcookie abc
--heart
+-boot start_sasl
+-kernel error_logger silent
