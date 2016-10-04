@@ -42,7 +42,7 @@
 start_link(Module, Args) ->
     gen_server:start_link(?MODULE, [Args#{module => Module}], []).
 
-init([#{ module := Module, time := Time, sleep := Sleep, envs := Envs}]) ->
+init([#{ module := Module, time := Time, sleep := Sleep, envs := Envs }]) ->
     timer:apply_after(Time, gen_server, stop, [self()]),
     Metrics = make_metrics_titles(Module),
     Module_State = Module:init(Envs),

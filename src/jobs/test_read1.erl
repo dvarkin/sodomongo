@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 19 Aug 2016 by Dmitry Omelechko <dvarkin@gmail.com>
 %%%-------------------------------------------------------------------
--module(test_read).
+-module(test_read1).
 
 -behaviour(gen_worker).
 
@@ -28,9 +28,8 @@ init( _Args) ->
     undefined.
 
 
-job({Connection, _}, State) ->
+job({_, Connection}, State) ->
     {ok, select(Connection), State}.
-
 
 
 select(Connection) ->

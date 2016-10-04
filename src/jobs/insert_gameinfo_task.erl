@@ -6,11 +6,11 @@
 %%% @end
 %%% Created : 19 Aug 2016 by Dmitry Omelechko <dvarkin@gmail.com>
 %%%-------------------------------------------------------------------
--module(test_read).
+-module(insert_gameinfo_task).
 
 -behaviour(gen_worker).
 
--export([init_metrics/0, job/2, init/1]).
+-export([init_metrics/0, job/1, init/1]).
 -export([start/1]).
 
 init_metrics() ->
@@ -24,17 +24,19 @@ init_metrics() ->
 start(Args) -> 
     gen_worker:start_link(?MODULE, Args).
 
-init( _Args) ->
-    undefined.
+init(Envs) ->
+    {ok, Conn} = rethinkdb:connect(Envs),
+    #{conn => Conn}.
 
 
-job({Connection, _}, State) ->
-    {ok, select(Connection), State}.
+job(#{conn := Conn} = State) ->
+    {ok, insert(Conn), State}.
 
-
-
-select(Connection) ->
-    fun() -> 
-            _R = mc_worker_api:find_one(Connection, <<"gameinfo">>, #{<<"ID">> => 1})
+insert(Conn) ->
+    fun() ->
+        rethinkdb:r([
+            [table, <<"gameinfo">>],
+            [insert, #{a => 1}]
+        ], Conn)
     end.
 

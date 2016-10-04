@@ -22,16 +22,17 @@ erl -name "${NAME}@${IP}" \
     -pa $Elixir \
     -pa $DIR/_build/dev/lib/bson/ebin \
     -pa $DIR/_build/dev/lib/mongodb/ebin \
-    -pa $DIR/_build/dev/lib/pbkdf2/ebin \
-    -pa $DIR/_build/dev/lib/poolboy/ebin\
-    -pa $DIR/_build/dev/lib/bear/ebin\
-    -pa $DIR/_build/dev/lib/folsom/ebin \
-    -pa $DIR/_build/dev/lib/folsomite/ebin\
-    -pa $DIR/_build/dev/lib/protobuffs/ebin\
-    -pa $DIR/_build/dev/lib/sync/ebin\
+    -pa $DIR/_build/dev/lib/pbkdf2/ebin/ \
+    -pa $DIR/_build/dev/lib/poolboy/ebin/ \
+    -pa $DIR/_build/dev/lib/bear/ebin/ \
+    -pa $DIR/_build/dev/lib/folsom/ebin/ \
+    -pa $DIR/_build/dev/lib/folsomite/ebin/ \
+    -pa $DIR/_build/dev/lib/protobuffs/ebin/ \
+    -pa $DIR/_build/dev/lib/sync/ebin/ \
     -pa $DIR/_build/dev/lib/sodomongo/ebin \
     -pa $DIR/_build/dev/lib/rethinkdb/ebin \
     -pa $DIR/_build/dev/lib/connection/ebin \
     -pa $DIR/_build/dev/lib/eredis/ebin \
+    -pa $DIR/_build/dev/lib/poison/ebin \
     -s ${START_MODULE} \
     ${@:4}
