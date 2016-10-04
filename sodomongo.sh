@@ -24,6 +24,7 @@ erl -name "${NAME}@${IP}" \
     -pa _build/dev/lib/rethinkdb/ebin \
     -pa _build/dev/lib/connection/ebin \
     -pa _build/dev/lib/eredis/ebin \
+    -pa _build/dev/lib/poison/ebin \
     -pa $ELIXIR_EBIN/ \
     -boot start_sasl \
     -kernel error_logger silent \

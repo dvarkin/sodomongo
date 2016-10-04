@@ -28,7 +28,8 @@ make_args(Dir) ->
     "/_build/dev/lib/sodomongo/ebin",
     "/_build/dev/lib/rethinkdb/ebin",
     "/_build/dev/lib/connection/ebin",
-    "/_build/dev/lib/eredis/ebin"
+    "/_build/dev/lib/eredis/ebin",
+    "/_build/dev/lib/poison/ebin"
     ],
     DirDeps = string:join([" -pa " ++ Dir ++ D || D <- Deps], ""),
     StartArgs = "-pa " ++ ElixirEbin ++ " -config "  ++ Dir ++ "/rel/sys -setcookie abc -s sodomongo start_deps -s metrics start_link -s sodomongo init_metrics ",
