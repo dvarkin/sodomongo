@@ -10,7 +10,7 @@
 -author("serhiinechyporhuk").
 
 %% API
--export([connect/1, r/2]).
+-export([connect/1, r/2, r/3]).
 
 connect(Args) ->
     RethinkConf = proplists:get_value(rethinkdb, Args),
@@ -21,11 +21,12 @@ connect(Args) ->
 apply_query(Fun, Args) ->
     apply('Elixir.RethinkDB.Query', Fun, Args).
 
-r([[InitFun | InitArgs] | Ts], Conn) ->
-    Query = lists:foldl(
-        fun([Fun | Args], Acc) ->
-            apply_query(Fun, [Acc | Args])
-        end,
-        apply_query(InitFun, InitArgs),
-        Ts),
+r(Ts, Conn) ->
+    [[Fun | Args] | Rest] = Ts,
+    r(Rest, apply_query(Fun, Args), Conn).
+
+r([[Fun | Args] | Ts], Query, _Conn) ->
+    r(Ts, apply_query(Fun, [Query | Args]));
+
+r([], Query, Conn) ->
     'Elixir.RethinkDB':run(Query, Conn).
