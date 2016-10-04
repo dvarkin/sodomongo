@@ -41,12 +41,12 @@ Vagrant.configure("2") do |config|
     SHELL
   end
   
-  config.vm.define "w2" do |node|
+  config.vm.define "w2", autostart: false do |node|
     node.vm.hostname = "slave-2"    
     node.vm.network "private_network", ip: "192.168.144.112"
     
     node.vm.provider "virtualbox" do |vb|
-      vb.memory = "256"
+      vb.memory = "512"
       vb.cpus = 1
     end
     
@@ -54,12 +54,12 @@ Vagrant.configure("2") do |config|
     SHELL
   end
   
-  config.vm.define "w3" do |node|
+  config.vm.define "w3", autostart: false do |node|
     node.vm.hostname = "slave-3"    
     node.vm.network "private_network", ip: "192.168.144.113"
     
     node.vm.provider "virtualbox" do |vb|
-      vb.memory = "256"
+      vb.memory = "512"
       vb.cpus = 1
     end
   end
