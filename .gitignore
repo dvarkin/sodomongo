@@ -21,3 +21,4 @@ apps/
 rel/sys.config
 *.beam
 .vagrant
+_build/
