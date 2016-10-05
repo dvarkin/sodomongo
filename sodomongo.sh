@@ -4,7 +4,7 @@ ETH=$1
 NAME=$2
 START_MODULE=""
 
-if [ $3 = "master" ]; then
+if [ $2 = "master" ]; then
   START_MODULE="sodomongo start"
 else
   START_MODULE="sodomongo start_deps"
