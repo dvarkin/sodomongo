@@ -70,7 +70,7 @@ handle_info(tick, #state{module = Module, sleep = Sleep, module_state = Module_S
     {noreply, State#state{module_state = Module_State_New}};
 
 handle_info(_Info, State) ->
-    error_logger:error_msg("Unhandeled message in worker: ~p", [_Info]),
+    io:format("Unhandeled message in worker: ~p", [_Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -112,6 +112,9 @@ start_metrics([{MetricType, Metric} | Metrics] ) ->
 start_metrics([]) ->
     ok.
 
+parse_response({ok, {send_metrics, Response}, Module_State_New}, Module, Metrics) ->
+    send_metrics(Module, Metrics, Response),
+    Module_State_New;
 parse_response({ok, undefined, Module_State_New}, _Module, _Metrics) ->
     Module_State_New;
 parse_response({ok, ProfileAction, Module_State_New}, Module, Metrics) ->
@@ -127,24 +130,36 @@ idle(_) ->
 
 %%% JOB
 
-profile_job(Module, Action,
-                #{
-                  rate := {_, Rate},
-                  total := {_, Total},
-                  time := {_, Time},
-                  error := {_, Error},
-                  docs_count := {_, DocsCount},
-                  success := {_, Success}
-                 }
-               ) ->
+profile_job(Module, Action, #{time := {_, Time}} = Metrics) ->
+    Response = profiler:prof(Time, Action),
+    send_metrics(Module, Metrics, Response).
+
+send_metrics(_Module, #{
+               rate := {_, Rate},
+               total := {_, Total},
+               time := {_, _Time},
+               error := {_, _Error},
+               docs_count := {_, DocsCount},
+               success := {_, Success}
+              },
+             #{status := success, doc_count := N}) ->
     metrics:notify({Rate, 1}),
     metrics:notify({Total, {inc, 1}}),
-    Response = profiler:prof(Time, Action),
-    case Response of
-        #{status := success, doc_count := N} ->
-            metrics:notify({DocsCount, N}),
-            metrics:notify({Success, {inc, 1}});
-        Response ->
-            error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Response]),
-            metrics:notify({Error, {inc, 1}})
-    end.
+    metrics:notify({DocsCount, N}),
+    metrics:notify({Success, {inc, 1}});
+
+send_metrics(Module, #{
+               rate := {_, Rate},
+               total := {_, Total},
+               time := {_, _Time},
+               error := {_, Error},
+               docs_count := {_, _DocsCount},
+               success := {_, _Success}
+              },
+             Response) ->
+    metrics:notify({Rate, 1}),
+    metrics:notify({Total, {inc, 1}}),
+    metrics:notify({Error, {inc, 1}}),
+    error_logger:error_msg("Error from module: ~p~n: ~p~n", [Module, Response]).
+    
+    
