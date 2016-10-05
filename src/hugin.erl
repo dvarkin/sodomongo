@@ -56,6 +56,7 @@ init([]) ->
     metrics:create(counter, <<"reconnections.total">>),
     metrics:create(counter, <<"timedout.total">>),
     Envs = application:get_all_env(sodomongo),
+    io:format("~p~n", [Envs]),
     {ok, #state{envs = Envs}}.
 
 handle_call(workers, _From, #state{workers = Workers} = State) ->

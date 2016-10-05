@@ -1,1 +1,1 @@
-ELIXIR_EBIN=/usr/local/lib/elixir/lib/elixir/ebin/ ./master.sh
+mix deps.get && mix compile && ELIXIR_EBIN=/usr/local/lib/elixir/lib/elixir/ebin/ ./master.sh

@@ -15,11 +15,9 @@ create_jobs(Jobs) ->
   [metrics:create(gauge, job_gauge_name(Job)) || Job <- Jobs].
 
 collect() ->
-  Workers = [{State, Task} || {_, #{state := State, task := Task}} <- maps:to_list(hugin:workers())],
-  TotalWorkers = length(Workers),
-  Inc = fun(V) -> V + 1 end,
-  WorkersCountByStatus = lists:foldl(fun({State, _}, Acc) -> maps:update_with(State, Inc, Acc) end, ?INITIAL_STATUS_STAT, Workers),
-  maps:put('TOTAL', TotalWorkers, WorkersCountByStatus).
+  WorkersCount = maps:size(hugin:workers()),
+  #{'WAIT_JOB' => 0, 'WAIT_CONNECTION' => 0, 'INPROGRESS' => WorkersCount, 'TOTAL' => WorkersCount}.
+
 
 notify() ->
   ByStatus = collect(),
