@@ -16,9 +16,6 @@ start() ->
 
 start_deps() ->
     ok = application:ensure_started(crypto),
-    ok = application:ensure_started(poolboy),
-    ok = application:ensure_started(bson),
-    ok = application:ensure_started(mongodb),
     ok = application:ensure_started(bear),
     ok = application:ensure_started(folsom),
     ok = application:ensure_started(protobuffs),
@@ -26,7 +23,6 @@ start_deps() ->
     ok = application:ensure_started(compiler),
     ok = application:ensure_started(elixir),
     ok = application:ensure_started(eredis),
-    %ok = application:ensure_started(zeta),
     ok = application:ensure_started(folsomite).
 
 init_metrics() ->
