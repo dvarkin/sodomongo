@@ -19,7 +19,7 @@
 -export([start/1, start/0]).
 
 %% gen_worker behaviour API
--export([init_metrics/0, job/1, init/1, insert/2]).
+-export([init_metrics/0, job/1, init/1]).
 
 init_metrics() ->
     gen_worker:init_metrics(?MODULE).
