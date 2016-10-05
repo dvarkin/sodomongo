@@ -25,8 +25,8 @@ r(Ts, Conn) ->
     [[Fun | Args] | Rest] = Ts,
     r(Rest, apply_query(Fun, Args), Conn).
 
-r([[Fun | Args] | Ts], Query, _Conn) ->
-    r(Ts, apply_query(Fun, [Query | Args]));
+r([[Fun | Args] | Ts], Query, Conn) ->
+    r(Ts, apply_query(Fun, [Query | Args]), Conn);
 
 r([], Query, Conn) ->
     'Elixir.RethinkDB':run(Query, Conn).
