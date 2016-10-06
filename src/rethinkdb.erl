@@ -21,12 +21,21 @@ connect(Args) ->
 apply_query(Fun, Args) ->
     apply('Elixir.RethinkDB.Query', Fun, Args).
 
-r(Ts, Conn) ->
-    [[Fun | Args] | Rest] = Ts,
+
+%% @doc
+%% Usage:
+%%  Response = rethinkdb:r([
+%%      [table, ?GAMEINFO],
+%%      [changes]
+%%    ],
+%%    Conn),
+%% @end
+r(Queries, Conn) ->
+    [[Fun | Args] | Rest] = Queries,
     r(Rest, apply_query(Fun, Args), Conn).
 
-r([[Fun | Args] | Ts], Query, Conn) ->
-    r(Ts, apply_query(Fun, [Query | Args]), Conn);
+r([[Fun | Args] | Queries], ResultQuery, Conn) ->
+    r(Queries, apply_query(Fun, [ResultQuery | Args]), Conn);
 
-r([], Query, Conn) ->
-    'Elixir.RethinkDB':run(Query, Conn).
+r([], ResultQuery, Conn) ->
+    'Elixir.RethinkDB':run(ResultQuery, Conn).
