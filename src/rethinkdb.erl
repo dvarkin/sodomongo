@@ -10,7 +10,7 @@
 -author("serhiinechyporhuk").
 
 %% API
--export([connect/1, r/2, r/3]).
+-export([connect/1, r/2, r/3, next/1]).
 
 connect(Args) ->
     RethinkConf = proplists:get_value(rethinkdb, Args),
@@ -39,3 +39,6 @@ r([[Fun | Args] | Queries], ResultQuery, Conn) ->
 
 r([], ResultQuery, Conn) ->
     'Elixir.RethinkDB':run(ResultQuery, Conn).
+
+next(Result) ->
+    'Elixir.RethinkDB':next(Result).
