@@ -34,5 +34,7 @@ erl -name "${NAME}@${IP}" \
     -pa $DIR/_build/dev/lib/connection/ebin \
     -pa $DIR/_build/dev/lib/eredis/ebin \
     -pa $DIR/_build/dev/lib/poison/ebin \
+    -pa $DIR/_build/dev/lib/jsone/ebin \
+    -pa $DIR/_build/dev/lib/uuid/ebin \
     -s ${START_MODULE} \
     ${@:4}

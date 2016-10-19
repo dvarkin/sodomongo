@@ -7,10 +7,13 @@
   "folsom": {:hex, :folsom, "0.8.3", "71cff146152fa95e6092e62119f9dc96888660111e7b61853c8fdcf80598a4e0", [:rebar3], [{:bear, "0.8.3", [hex: :bear, optional: false]}]},
   "folsomite": {:hex, :folsomite, "1.2.8", "eabd2f2cf10cea30315f5b42f22745dd0918eb622eb0d39b98bce3742710641e", [:rebar3], [{:folsom, "0.8.3", [hex: :folsom, optional: false]}]},
   "ibrowse": {:git, "git://github.com/cmullaparthi/ibrowse", "e8ae353c16d4f0897abb9f80025b52925b974dd1", [tag: "v4.0.2"]},
+  "jsone": {:hex, :jsone, "1.4.0", "6ecfd2c91e16f48e1535743b57d01a42c65d7dd51a8b43e5723b1f79927169a8", [:rebar3], []},
+  "jsx": {:hex, :jsx, "2.8.0", "749bec6d205c694ae1786d62cea6cc45a390437e24835fd16d12d74f07097727", [:mix, :rebar], []},
   "meck": {:hex, :meck, "0.8.4", "59ca1cd971372aa223138efcf9b29475bde299e1953046a0c727184790ab1520", [:rebar, :make], []},
   "mongodb": {:git, "https://github.com/dvarkin/mongodb-erlang.git", "3062596dbe3de712d79680d91804609b21f268a1", [tag: "master"]},
   "pbkdf2": {:git, "git://github.com/comtihon/erlang-pbkdf2.git", "7076584f5377e98600a7e2cb81980b2992fb2f71", [tag: "2.0.0"]},
   "poison": {:hex, :poison, "2.2.0", "4763b69a8a77bd77d26f477d196428b741261a761257ff1cf92753a0d4d24a63", [:mix], []},
   "poolboy": {:git, "git://github.com/comtihon/poolboy.git", "04ea8a5479b273a052942755ebdc42c9e318d907", [branch: "master"]},
   "protobuffs": {:hex, :protobuffs, "0.8.4", "d38ca5f7380d8477c274680273372011890f8d0037c0d7e7db5c0207b89a4e0b", [:rebar, :make], [{:meck, "~> 0.8.4", [hex: :meck, optional: false]}]},
-  "rethinkdb": {:hex, :rethinkdb, "0.4.0", "287714c2c7683a1f327ea83bf7a1c4eaaf8141ddf52e785632ef289d3851bc4e", [:mix], [{:connection, "~> 1.0.1", [hex: :connection, optional: false]}, {:poison, "~> 1.5 or ~> 2.0", [hex: :poison, optional: false]}]}}
+  "rethinkdb": {:hex, :rethinkdb, "0.4.0", "287714c2c7683a1f327ea83bf7a1c4eaaf8141ddf52e785632ef289d3851bc4e", [:mix], [{:connection, "~> 1.0.1", [hex: :connection, optional: false]}, {:poison, "~> 1.5 or ~> 2.0", [hex: :poison, optional: false]}]},
+  "uuid": {:hex, :uuid, "1.1.5", "96cb36d86ee82f912efea4d50464a5df606bf3f1163d6bdbb302d98474969369", [:mix], []}}

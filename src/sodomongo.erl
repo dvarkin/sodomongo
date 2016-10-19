@@ -4,8 +4,8 @@
     start/0,
     start_deps/0,
     start_test/5,
-    init_metrics/0
-    , create_tables/0]).
+    init_metrics/0,
+    fill/1]).
 
 -include("generator.hrl").
 
@@ -41,22 +41,23 @@ init_metrics() ->
 
 
 
-create_table(TableName, Conn) ->
-    #{data := TableList} = rethinkdb:r([[table_list]], Conn),
-    case lists:member(TableName, TableList) of
-        true -> rethinkdb:r([[table_drop, TableName]], Conn);
-        _ -> ok
-    end,
-    rethinkdb:r([[table_create, TableName, #{shards => 5, replicas => 2}]], Conn).
+fill(N) ->
+    {ok, Conn} = aero:connect(application:get_all_env(sodomongo)),
+    io:format("connect - done~n"),
+    fill(Conn, 0, N). 
 
-create_tables() ->
-    {ok, Conn} = rethinkdb:connect(application:get_all_env(sodomongo)),
-    create_table(<<"gameinfo">>, Conn),
-    create_table(<<"marketinfo">>, Conn),
-    ok.
+fill(Conn, N, N) ->
+    aerospike:shutdown(Conn),
+    ok;
+fill(Conn, Idx, N) ->
+    Data = shit_generator:gen(),
+    io:format("data - done~n"),
+    aerospike:put(Conn, "test", "data", Idx, [{"Bin", Data}], 0),
+    io:format("~p~n", [N]),
+    fill(Conn, Idx + 1, N).
+
 
 start_test(_InsertWorkers, _UpdateWorkers, _DeleteWorkers, ReadWorkers, Time) ->
-    create_tables(),
 %%    init_replica_test(),
 %%    %init_metrics(),
 %%    meta_storage:flush(),

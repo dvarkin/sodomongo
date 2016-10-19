@@ -25,7 +25,9 @@ defmodule Sodo.Mixfile do
      {:folsomite, "~> 1.2"},
      {:protobuffs, "~> 0.8.4"},
      {:eredis, "~> 1.0"},
-     {:rethinkdb, "~> 0.4.0"}
+     {:rethinkdb, "~> 0.4.0"},
+     {:jsone, "~> 1.4.0"},
+     {:uuid, "~> 1.1"}
      ]
   end
 end

@@ -20,6 +20,8 @@
 
 -record(state, {workers = #{}, envs = []}).
 
+-define(MAX_ID, 1000000).
+
 %% API.
 
 %% Worker API
@@ -63,7 +65,8 @@ handle_call(workers, _From, #state{workers = Workers} = State) ->
     {reply, Workers, State};
 
 handle_call({start_job, Task_Module, WorkersNum, Time, Sleep}, _From, #state{envs = Envs} = State) ->
-    [start_worker(N, Envs, Task_Module, Time, Sleep) || N <- lists:seq(1, WorkersNum)],
+    M = ?MAX_ID div WorkersNum,
+    [start_worker(N, #{from => M * N, to => M * N + M - 1, envs => Envs}, Task_Module, Time, Sleep) || N <- lists:seq(1, WorkersNum)],
     {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
