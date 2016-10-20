@@ -14,6 +14,8 @@
 
 connect(Args) ->
     AeroConf = proplists:get_value(aerospike, Args),
-    Host = proplists:get_value(host, AeroConf),
+    Hosts = proplists:get_value(host, AeroConf),
     Port = proplists:get_value(port, AeroConf),
-    aerospike:connect(Host, Port).
+    {ok, Conn} = aerospike:connect(hd(Hosts), Port),
+    [aerospike:addhost(Conn, H, Port, 0) || H <- tl(Hosts)],
+    {ok, Conn}.
