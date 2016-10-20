@@ -44,7 +44,6 @@ start_link(Module, Args) ->
 
 init([#{ module := Module, time := Time, sleep := Sleep, envs := Envs }]) ->
     timer:apply_after(Time, gen_server, stop, [self()]),
-    Module:init_metrics(),
     Metrics = make_metrics_titles(Module),
     Module_State = Module:init(Envs),
     self() ! tick,
