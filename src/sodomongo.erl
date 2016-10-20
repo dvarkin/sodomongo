@@ -27,17 +27,7 @@ start_deps() ->
 
 init_metrics() ->
     shit_inserter:init_metrics(),
-%%    insert_gameinfo_task:init_metrics(),
-%%    insert_marketinfo_task:init_metrics(),
-%%    update_odd_task:init_metrics(),
-%%    delete_gameinfo_task:init_metrics(),
-%%    delete_marketinfo_task:init_metrics(),
-%%    read_branches_with_active_games_worker:init_metrics(),
-%%    read_leagues_by_branch_with_number_of_games_in_active_state_worker:init_metrics(),
-%%    read_live_gameinfo_by_branch_worker:init_metrics(),
-%%    read_non_zero_odds_markets_worker:init_metrics(),
-%%    read_top_events_by_turnover_worker:init_metrics(),
-%%    read_top_events_starting_soon_worker:init_metrics(),
+    shit_reader:init_metrics(),
     ok.
 
 
