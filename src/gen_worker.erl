@@ -142,7 +142,7 @@ send_metrics(_Module, #{
                docs_count := {_, DocsCount},
                success := {_, Success}
               },
-             #{status := success, doc_count := N} = Response) ->
+             #{status := success, doc_count := N}) ->
     metrics:notify({Rate, 1}),
     metrics:notify({Total, {inc, 1}}),
     metrics:notify({DocsCount, N}),
