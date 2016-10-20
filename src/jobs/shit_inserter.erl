@@ -31,7 +31,7 @@ job(#{from := From, to := From} = State) ->
 job(#{aero := Aero, from := From} = State) ->
     Data = shit_generator:gen(),
     {ok, fun() ->
-        Response = aerospike:put(Aero, "test", "data", From, [{"data", Data}], 0),
+        Response = aerospike:put(Aero, "ssd", "data", From, [{"data", Data}], 0),
         #{status => success, doc_count => 1, response => Response}
     end, State#{from := From + 1}}.
 
