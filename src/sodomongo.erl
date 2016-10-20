@@ -26,6 +26,7 @@ start_deps() ->
     ok = application:ensure_started(folsomite).
 
 init_metrics() ->
+    shit_inserter:init_metrics(),
 %%    insert_gameinfo_task:init_metrics(),
 %%    insert_marketinfo_task:init_metrics(),
 %%    update_odd_task:init_metrics(),
