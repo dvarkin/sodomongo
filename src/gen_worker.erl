@@ -143,7 +143,6 @@ send_metrics(_Module, #{
                success := {_, Success}
               },
              #{status := success, doc_count := N} = Response) ->
-    io:format("Response: ~p~n", [Response]),
     metrics:notify({Rate, 1}),
     metrics:notify({Total, {inc, 1}}),
     metrics:notify({DocsCount, N}),
