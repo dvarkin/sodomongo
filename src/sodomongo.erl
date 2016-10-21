@@ -26,8 +26,8 @@ start_deps() ->
     ok = application:ensure_started(folsomite).
 
 init_metrics() ->
-    shit_inserter:init_metrics(),
-    shit_reader:init_metrics(),
+    primary_inserter:init_metrics(),
+    primary_reader:init_metrics(),
     ok.
 
 
