@@ -101,7 +101,7 @@ gen_node() ->
 
 start_worker(N, Envs, Task_Module, Time, Sleep) when N > 0 ->
     spawn(fun() ->
-		  timer:sleep(N * 100),
+		  timer:sleep(N * 20),
 		  {ok, _Pid} = rpc:call(gen_node(), Task_Module, start, [#{envs => Envs,
                                                                            time => Time,
                                                                            sleep => Sleep
