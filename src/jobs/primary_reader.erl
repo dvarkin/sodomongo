@@ -12,7 +12,7 @@
 -export([job/1, init/1, start/1, init_metrics/0]).
 
 -define(NAMESPACE, "ssd").
-q-define(MAX_ID, 1000000).
+-define(MAX_ID, 1000000).
 
 init(#{envs := Envs, from := From, to := To}) ->
     {ok, Aero} = aero:connect(Envs),
