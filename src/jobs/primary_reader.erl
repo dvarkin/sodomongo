@@ -11,7 +11,7 @@
 -behavior(gen_worker).
 -export([job/1, init/1, start/1, init_metrics/0]).
 
--define(NAMESPACE, "ssd").
+-define(NAMESPACE, "dram").
 -define(SET, "data3k").
 -define(MAX_ID, 1000000).
 
