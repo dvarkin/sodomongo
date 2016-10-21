@@ -11,6 +11,8 @@
 -behavior(gen_worker).
 -export([job/1, init/1, start/1, init_metrics/0]).
 
+-define(NAMESPACE, "ssd").
+-define(SET, "data3k").
 
 %% envs, aero, from, to
 
@@ -29,9 +31,11 @@ start(Args) ->
 job(#{from := From, to := From} = State) ->
     {ok, fun() -> #{status => success, doc_count => 0, response => nothing_to_insert} end, State};
 job(#{aero := Aero, from := From} = State) ->
-    Data = shit_generator:gen(),
+    Data1 = shit_generator:gen(),
+    Data2 = shit_generator:gen(),
+    Data3 = shit_generator:gen(),
     {ok, fun() ->
-        Response = aerospike:put(Aero, "ssd", "data", From, [{"data", Data}], 0),
+        Response = aerospike:put(Aero, ?NAMESPACE, ?SET, From, [{"data1", Data1},{"data2", Data2},{"data3", Data3}], 0),
         #{status => success, doc_count => 1, response => Response}
     end, State#{from := From + 1}}.
 

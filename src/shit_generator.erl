@@ -13,6 +13,6 @@
 -export([gen/0]).
 
 gen() ->
-    [8 || _ <- lists:seq(1, 1250)].
+    [rand:uniform(9) || _ <- lists:seq(1, 1024)].
 
 

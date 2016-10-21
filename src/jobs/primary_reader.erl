@@ -12,6 +12,7 @@
 -export([job/1, init/1, start/1, init_metrics/0]).
 
 -define(NAMESPACE, "ssd").
+-define(SET, "data3k").
 -define(MAX_ID, 1000000).
 
 init(#{envs := Envs, from := From, to := To}) ->
@@ -26,11 +27,11 @@ start(Args) ->
 
 job(#{aero := Aero} = State) ->
     {ok, fun() ->
-        Response = aerospike:get(Aero, ?NAMESPACE, "data", rand:uniform(?MAX_ID), ["data"], 0),
+        Response = aerospike:get(Aero, ?NAMESPACE, ?SET, rand:uniform(?MAX_ID), ["data1", "data2", "data3"], 0),
         parse_response(Response)
          end, State}.
 
 parse_response({citrusleaf_error, _} = Response) ->
     #{status => error, response => Response};
-parse_response([{"data", _}|_] = Response) ->
+parse_response([{"data1", _}|_] = Response) ->
     #{status => success, doc_count => 1, response => Response}.
