@@ -11,7 +11,7 @@
 -behavior(gen_worker).
 -export([job/1, init/1, start/1, init_metrics/0]).
 
--define(NAMESPACE, "dram").
+-define(NAMESPACE, "ssd").
 -define(SET, "data3k").
 
 %% envs, aero, from, to
